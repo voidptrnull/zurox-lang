@@ -58,7 +58,7 @@ inline std::string get_os_release_name()
     return "Unknown Linux";
 }
 
-#define _OS "Linux" + get_os_release_name()
+#define _OS "Linux"
 #elif defined(__FreeBSD__)
 #define _OS "FreeBSD"
 #elif defined(__OpenBSD__)
@@ -80,9 +80,11 @@ inline std::string get_os_release_name()
 #define __SET_OS_NAME
 inline std::string get_version()
 {
-    static std::string VERSION = std::string(_VER_NUM) + " " + _OS;
+    static std::string VERSION = std::string(_VER_NUM) + " ";
 #ifdef __linux__
-    VERSION += " (" + get_os_release_name() + ")";
+    VERSION += get_os_release_name() + " " + _OS;
+#else
+    VERSION += _OS;
 #endif
     VERSION += " " + std::string(_ARCH);
     return VERSION;

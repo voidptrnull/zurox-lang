@@ -1,7 +1,0 @@
-/home/srcydev/Code/zurox-lang/build/CMakeFiles/intrinsics_gen.dir
-/home/srcydev/Code/zurox-lang/build/CMakeFiles/omp_gen.dir
-/home/srcydev/Code/zurox-lang/build/CMakeFiles/acc_gen.dir
-/home/srcydev/Code/zurox-lang/build/CMakeFiles/RISCVTargetParserTableGen.dir
-/home/srcydev/Code/zurox-lang/build/CMakeFiles/zurox-lang.dir
-/home/srcydev/Code/zurox-lang/build/CMakeFiles/edit_cache.dir
-/home/srcydev/Code/zurox-lang/build/CMakeFiles/rebuild_cache.dir

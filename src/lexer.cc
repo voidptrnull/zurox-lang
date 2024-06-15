@@ -1,26 +1,24 @@
+#include <array>
+#include <algorithm>
+#include <memory>
+
+#include <definitions.hh>
 #include <lexer.hh>
 #include <version.hh>
 
-#include <sstream>
-#include <fstream>
-#include <cctype>
-#include <unordered_set>
-
-lexer::Lexer::Lexer(const std::string &file_name, util::PrintGlobalState &print) : line(1), col(0), file_name(file_name), print(print)
+Lexer::Lexer(const std::string &file, const std::string &file_name, PrintGlobalState &print) : line(1), col(0), file_name(file_name), print(print)
 {
-    std::ifstream file_stream(file_name);
-    if (!file_stream)
-    {
-        print.error("File '" + file_name + "' not found !!!");
-        exit(127);
-    }
-    std::stringstream buffer;
-    buffer << file_stream.rdbuf();
-    file = buffer.str();
+    this->file = file;
 }
 
-std::vector<token::Token> lexer::Lexer::lex()
+llvm::StringRef Lexer::getFile()
 {
+    return this->file;
+};
+
+std::vector<Token> Lexer::lex()
+{
+
     while (col < file.length())
     {
         char c = current();
@@ -34,7 +32,7 @@ std::vector<token::Token> lexer::Lexer::lex()
         }
         else if (isSeperator(c))
         {
-            tokens.emplace_back(token::TokenType::TK_SEPERATOR, line, col, std::string(1, current()));
+            tokens.emplace_back(TokenType::TK_SEPERATOR, line, col, std::string(1, current()));
             advance();
         }
         else if (isOperator(c))
@@ -60,35 +58,35 @@ std::vector<token::Token> lexer::Lexer::lex()
         else
         {
             print.error("Unexpected character found.", line, col + 1, file);
-            tokens.emplace_back(token::TokenType::TK_SEPERATOR, line, col, std::string(1, current()));
+            tokens.emplace_back(TokenType::TK_SEPERATOR, line, col, std::string(1, current()));
             advance();
         }
     }
-    tokens.emplace_back(token::TokenType::__EOF, line, col, "");
+    tokens.emplace_back(TokenType::__EOF, line, col, "");
     return tokens;
 }
 
-inline char lexer::Lexer::current() const
+inline char Lexer::current() const
 {
     return file[col];
 }
 
-inline char lexer::Lexer::peek() const
+inline char Lexer::peek() const
 {
     return col + 1 < file.size() ? file[col + 1] : '\0';
 }
 
-inline char lexer::Lexer::previous() const
+inline char Lexer::previous() const
 {
     return file.at(col - 1);
 }
 
-inline void lexer::Lexer::advance()
+inline void Lexer::advance()
 {
     col++;
 }
 
-void lexer::Lexer::keywordOrDatatypeOrIdentifier()
+void Lexer::keywordOrDatatypeOrIdentifier()
 {
     std::string str;
     while (isalnum(current()) || current() == '_')
@@ -96,46 +94,29 @@ void lexer::Lexer::keywordOrDatatypeOrIdentifier()
         str.push_back(current());
         advance();
     }
+    print.info(str);
 
-    static const std::unordered_set<std::string> DATA_TYPES = {
-        "u8", "u16", "u32", "u64", "i8", "i16", "i32", "i64",
-        "f32", "f64",
-#if defined(__x86_64__) || defined(__aarch64__) || defined(__powerpc64__) // Target specific features, usage is not recommended or avaialable by LLVM
-        "u128", "i128",                                                   // Dont support x86 even though it is avaialable for LLVM
-#endif
-#ifdef __x86_64__ // x86_64 specific features, can support x86 too but will not be implemented
-        "f80", "f128"
-#endif
-               "char",
-        "bool"};
-
-    static const std::unordered_set<std::string> ARCH_SPECIFIC_TYPES = {
-        "u128", "i128", "f80", "f128"};
-
-    static const std::unordered_set<std::string> KEYWORDS = {
-        "if", "elif", "else", "while", "fn", "as", "ret", "true", "false", "ref", "deref",
-        "struct", "sync", "enum", "void", "volatile", "import", "break", "continue", "match"};
-
-    if (DATA_TYPES.find(str) != DATA_TYPES.end())
+    if (find_dt(str).found)
     {
-        tokens.emplace_back(token::TokenType::TK_DATATYPE, line, col - str.length(), str);
+        tokens.emplace_back(TokenType::TK_DATATYPE, line, col - str.length(), str);
     }
-    else if (KEYWORDS.find(str) != KEYWORDS.end())
+    else if (find_keyword(str).found)
     {
-        tokens.emplace_back(token::TokenType::TK_KEYWORD, line, col - str.length(), str);
+        tokens.emplace_back(TokenType::TK_KEYWORD, line, col - str.length(), str);
     }
-    else if (ARCH_SPECIFIC_TYPES.find(str) != ARCH_SPECIFIC_TYPES.end())
+    else if (find_archdt(str).found)
     {
         print.error("Found '" + str + "' which is not supported for " + _ARCH + ".", line, col - str.length(), file);
-        tokens.emplace_back(token::TokenType::TK_KEYWORD, line, col - str.length(), str); // It can be parsed and checked so add it
+        tokens.emplace_back(TokenType::TK_KEYWORD, line, col - str.length(), str); // It can be parsed and checked so add it
     }
     else
     {
-        tokens.emplace_back(token::TokenType::TK_ID, line, col - str.length(), str);
+        tokens.emplace_back(TokenType::TK_ID, line, col - str.length(), str);
+
     }
 }
 
-void lexer::Lexer::number()
+void Lexer::number()
 {
     std::string str;
     while (isdigit(current()) || current() == '.' || current() == 'x' || current() == 'e' || current() == 'E' || current() == '+' || current() == '-')
@@ -149,12 +130,12 @@ void lexer::Lexer::number()
         if (str.find('.') != std::string::npos || str.find('e') != std::string::npos || str.find('E') != std::string::npos)
         {
             std::stod(str);
-            tokens.emplace_back(token::TokenType::TKL_FLOAT, line, col - str.length(), str);
+            tokens.emplace_back(TokenType::TKL_FLOAT, line, col - str.length(), str);
         }
         else
         {
             std::stoll(str);
-            tokens.emplace_back(token::TokenType::TKL_INT, line, col - str.length(), str);
+            tokens.emplace_back(TokenType::TKL_INT, line, col - str.length(), str);
         }
     }
     catch (const std::exception &)
@@ -163,19 +144,19 @@ void lexer::Lexer::number()
     }
 }
 
-bool lexer::Lexer::isSeperator(char c) const
+bool Lexer::isSeperator(char c) const
 {
-    static const std::unordered_set<char> SEPARATORS = {';', ',', '{', '}', '[', ']', '(', ')'};
-    return SEPARATORS.find(c) != SEPARATORS.end();
+    constexpr std::array<char, 8> SEPARATORS = {';', ',', '{', '}', '[', ']', '(', ')'};
+    return std::find(SEPARATORS.begin(), SEPARATORS.end(), c) != SEPARATORS.end();
 }
 
-bool lexer::Lexer::isOperator(char c) const
+bool Lexer::isOperator(char c) const
 {
-    static const std::unordered_set<char> OPERATORS = {'>', '<', '=', '!', '^', '|', '&', '+', '-', '*', '/', '%'};
-    return OPERATORS.find(c) != OPERATORS.end();
+    constexpr std::array<char, 12> OPERATORS = {'>', '<', '=', '!', '^', '|', '&', '+', '-', '*', '/', '%'};
+    return std::find(OPERATORS.begin(), OPERATORS.end(), c) != OPERATORS.end();
 }
 
-void lexer::Lexer::handleOperator()
+void Lexer::handleOperator()
 {
     std::string op;
     if (current() == '/' && (peek() == '/' || peek() == '*'))
@@ -192,12 +173,12 @@ void lexer::Lexer::handleOperator()
             op.push_back(peek());
             advance();
         }
-        tokens.emplace_back(token::TokenType::TK_OPERATOR, line, col, op);
+        tokens.emplace_back(TokenType::TK_OPERATOR, line, col, op);
         advance();
     }
 }
 
-void lexer::Lexer::handleStringLiteral()
+void Lexer::handleStringLiteral()
 {
     advance();
     std::string str;
@@ -231,10 +212,10 @@ void lexer::Lexer::handleStringLiteral()
         }
     }
     advance();
-    tokens.emplace_back(token::TokenType::TKL_STR, line, col - str.length(), str);
+    tokens.emplace_back(TokenType::TKL_STR, line, col - str.length(), str);
 }
 
-void lexer::Lexer::handleCharLiteral()
+void Lexer::handleCharLiteral()
 {
     advance();
     if (current() == '\\')
@@ -249,12 +230,12 @@ void lexer::Lexer::handleCharLiteral()
                 escape_seq.push_back(current());
                 advance();
             }
-            tokens.emplace_back(token::TokenType::TKL_CHAR, line, col - 6, static_cast<char>(std::stoi(escape_seq, nullptr, 16)));
+            tokens.emplace_back(TokenType::TKL_CHAR, line, col - 6, static_cast<char>(std::stoi(escape_seq, nullptr, 16)));
         }
         else
         {
             escape_seq.push_back(current());
-            tokens.emplace_back(token::TokenType::TKL_CHAR, line, col - 3, escape_seq[0]);
+            tokens.emplace_back(TokenType::TKL_CHAR, line, col - 3, escape_seq[0]);
             advance();
         }
     }
@@ -262,11 +243,11 @@ void lexer::Lexer::handleCharLiteral()
     {
         char c = current();
         advance();
-        tokens.emplace_back(token::TokenType::TKL_CHAR, line, col - 2, c);
+        tokens.emplace_back(TokenType::TKL_CHAR, line, col - 2, c);
     }
 }
 
-void lexer::Lexer::handleComment()
+void Lexer::handleComment()
 {
     if (peek() == '*')
     {

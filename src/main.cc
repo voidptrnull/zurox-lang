@@ -1,161 +1,93 @@
 #include <iostream>
 #include <string>
-#include <vector>
-#include "version.hh"
-#include "lexer.hh"
-#include "parser.hh"
-#include "print.hh"
+#include <version.hh>
+#include <print.hh>
+#include <sstream>
+#include <fstream>
+#include <cctype>
+#include <llvm/Support/CommandLine.h>
+#include <llvm/Support/raw_ostream.h>
+#include <llvm/ADT/StringMap.h>
+#include <llvm/TargetParser/Triple.h>
 
-const char* HELP_TEXT =
-    "Flags              Description\n"
-    "   -o,--output     The name of the output files.\n"
-    "   -c,--compile    *Specify to only compile files and produce object files, not link them.\n"
-    "   -S,--asm        *Specify to only compile files.\n"
-    "   -O,--opt-level  Specify the optimization level, to be followed with an integer like 0,1,2,3 or a character like 's'.\n"
-    "   -B,--bitcode    *Specify to output the LLVM IR.\n"
-    "   -C,--check      *Specify to check if the code works, won't produce anything.\n"
-    "   -h,--help       Shows this message.\n"
-    "   -v,--version    Shows the version.\n"
-    "Flags whose description starts with '*' cannot be used in combination with one another and only 1 can be used at a time.\n";
-
-void show_version()
+enum OptimizationLevel
 {
-    std::cout << "Zurox Programming Language " << get_version() << "\n";
+    g,
+    O0,
+    O1,
+    O2,
+    O3
+};
+
+enum StageType {
+    c,
+    S,
+    B,
+    C
+};
+
+void read_file(std::string &file, const std::string &file_name, const PrintGlobalState& print) {
+    std::ifstream file_stream(file_name, std::ios::binary | std::ios::ate);
+    if (!file_stream)
+    {
+        print.error("File '" + file_name + "' not found !!!");
+        exit(127);
+    }
+    std::stringstream buffer;
+    buffer << file_stream.rdbuf();
+    file = buffer.str();
 }
 
-void show_help(const char* name)
+int main(int argc, char **argv)
 {
-    show_version();
-    std::cout << "Usage: " << name << " <flags> <file names>" << "\n"
-              << HELP_TEXT;
-}
+    llvm::cl::SetVersionPrinter([](llvm::raw_ostream &O)
+                                { O << "Zurox Compiler " << get_version() << "\n"; });
 
-int main(int argc, char** argv)
-{
-    if (argc < 2)
+    llvm::StringMap<llvm::cl::Option *> &Map = llvm::cl::getRegisteredOptions();
+
+    for (auto &OptionPair : Map)
     {
-        show_help(argv[0]);
-        return 0;
-    }
-
-    bool oF = false, OF = false, SF = false, BF = false, cF = false, CF = false;
-    std::string opt_level = "0";
-    std::string output = "a.out";
-    std::vector<std::string> files;
-    util::PrintGlobalState print;
-
-    for (int i = 1; i < argc; ++i)
-    {
-        std::string x = std::string(argv[i]);
-        if (x == "-o" || x == "--output")
+        if (OptionPair.getKey() != "B" &&
+            OptionPair.getKey() != "c" &&
+            OptionPair.getKey() != "C" &&
+            OptionPair.getKey() != "o" &&
+            OptionPair.getKey() != "S" &&
+            OptionPair.getKey() != "version" &&
+            OptionPair.getKey() != "help")
         {
-            if (oF)
-            {
-                print.error("Output flag can be set only once.");
-                exit(255);
-            }
-            oF = true;
-
-            if (i + 1 < argc)
-            {
-                output = std::string(argv[++i]);
-            }
-            else
-            {
-                print.error("Output flag requires an argument.");
-                exit(255);
-            }
-        }
-        else if (x == "-c" || x == "--compile")
-        {
-            if (cF || SF || BF || CF)
-            {
-                print.error("Only one of the compile, asm, bitcode, or check flags can be set.");
-                exit(254);
-            }
-            cF = true;
-        }
-        else if (x == "-S" || x == "--asm")
-        {
-            if (cF || SF || BF || CF)
-            {
-                print.error("Only one of the compile, asm, bitcode, or check flags can be set.");
-                exit(253);
-            }
-            SF = true;
-        }
-        else if (x == "-O" || x == "--opt-level")
-        {
-            if (OF)
-            {
-                print.error("Optimize flag can be set only once.");
-                exit(252);
-            }
-            OF = true;
-
-            if (i + 1 < argc)
-            {
-                opt_level = std::string(argv[++i]);
-                if (!opt_level.compare("0") && !opt_level.compare("1") && !opt_level.compare("2") && !opt_level.compare("3") && !opt_level.compare("s")) {
-                    print.error("Invalid optimization level: " + opt_level);
-                    exit(252);
-                }
-                
-            }
-            else
-            {
-                print.error("Optimization level flag requires an argument.");
-                exit(252);
-            }
-        }
-        else if (x == "-B" || x == "--bitcode")
-        {
-            if (cF || SF || BF || CF)
-            {
-                print.error("Only one of the compile, asm, bitcode, or check flags can be set.");
-                exit(251);
-            }
-            BF = true;
-        }
-        else if (x == "-C" || x == "--check")
-        {
-            if (cF || SF || BF || CF)
-            {
-                print.error("Only one of the compile, asm, bitcode, or check flags can be set.");
-                exit(250);
-            }
-            CF = true;
-        }
-        else if (x == "-h" || x == "--help")
-        {
-            show_help(argv[0]);
-            exit(0);
-        }
-        else if (x == "-v" || x == "--version")
-        {
-            show_version();
-            exit(0);
-        }
-        else
-        {
-            files.push_back(x);
+            OptionPair.getValue()->setHiddenFlag(llvm::cl::ReallyHidden);
         }
     }
+    
+    llvm::cl::opt<std::string> Output("o", llvm::cl::desc("Specify the name of the output file."), llvm::cl::value_desc("filename"));
+    llvm::cl::opt<StageType> Stage(llvm::cl::desc("Choose stage type."),
+    llvm::cl::values(
+        clEnumVal(c,"Run all stages except linking."),
+        clEnumVal(S,"Specify to only compile files to provide assembly."),
+        clEnumVal(B,"Specify to output the LLVM IR."),
+        clEnumVal(C,"Check if the code compiles, do not produce any files.")
+    ));
 
-    if ((SF && BF) || (SF && CF) || (SF && cF) ||
-        (BF && CF) || (BF && cF) ||
-        (CF && cF))
-    {
-        print.error("More than 1 flag was set. Run with --help to know more. Cannot continue operation. Exiting....");
-        exit(128);
-    }
+    llvm::cl::opt<OptimizationLevel> OptimizationLevel(llvm::cl::desc("Choose optimization level:"),
+                                                       llvm::cl::values(
+                                                           clEnumVal(g, "No optimizations, enable debugging"),
+                                                           clEnumVal(O0, "Perform no optimizations."),
+                                                           clEnumVal(O1, "Enable trivial optimizations"),
+                                                           clEnumVal(O2, "Enable default optimizations"),
+                                                           clEnumVal(O3, "Enable expensive optimizations")));
+    llvm::cl::opt<std::string> March(llvm::cl::desc("Choose target architecture."), llvm::cl::value_desc("architecture name"));
+    llvm::cl::ParseCommandLineOptions(argc, argv, "Zurox Programming Language Compiler\n", nullptr, nullptr, true);
+    if (!March.empty()) {
+        llvm::Triple triple;
+        auto type = triple.getArchTypeForLLVMName(March);
+        if (type == llvm::Triple::ArchType::UnknownArch) {
 
-    for (std::string file : files) {
-        lexer::Lexer lexer(file, print);
-        for (token::Token tok : lexer.lex()) {
-            std::cout << "(" << tok.type << "," << tok.line << "," << tok.col << ",\"" << tok.lexeme << "\")\n";
         }
     }
+    
+
+    // Process other options and logic here
+    // std::vector<std::string> files(argv + 1, argv + argc);
 
     return 0;
 }

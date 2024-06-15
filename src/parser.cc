@@ -1,45 +1,54 @@
+#include <vector>
+#include <memory>
+#include <string>
+#include <token.hh>
+#include <visitor.hh>
 #include <parser.hh>
-#include <unordered_map>
-#include <functional>
 
-parser::Parser::Parser(std::vector<token::Token> &tokens) {
-    this->tokens = tokens;
+Body::~Body() {
+    statements.clear();
 }
 
-void parser::Parser::consume() {
-    pos++;
+void Body::accept(Visitor& visitor) {
+    visitor.visit(*this);
 }
 
-token::TokenType parser::Parser::current() {
-    return tokens.at(pos).type;
+void Elif::accept(Visitor& visitor) {
+    visitor.visit(*this);
 }
 
-std::string parser::Parser::lcurrent() {
-    return tokens.at(pos).lexeme;
+If::~If() {
+    elifBranches.clear();
 }
 
-parser::Node parser::Parser::parseIf() {
-    parser::If node;
-    consume();
-
+void If::accept(Visitor& visitor) {
+    visitor.visit(*this);
 }
 
-parser::Node parser::Parser::parseStatements() {
-    Node node;
-    token::TokenType type = current();
-
-    switch (type) {
-        case token::TokenType::TK_DATATYPE:
-            node = parseVar();
-            break;
-        case token::TokenType::TK_KEYWORD:
-            static std::unordered_map<std::string, std::function<parser::Node>> map = {
-
-            };
-            
-    }
+void Continue::accept(Visitor& visitor) {
+    visitor.visit(*this);
 }
 
-parser::Node parser::Parser::parseVar() {
+void Break::accept(Visitor& visitor) {
+    visitor.visit(*this);
+}
 
+void Loop::accept(Visitor& visitor) {
+    visitor.visit(*this);
+}
+
+void CaseClause::accept(Visitor& visitor) {
+    visitor.visit(*this);
+}
+
+void Match::accept(Visitor& visitor) {
+    visitor.visit(*this);
+}
+
+void RootNode::accept(Visitor& visitor) {
+    visitor.visit(*this);
+}
+
+void Variable::accept(Visitor& visitor) {
+    visitor.visit(*this);
 }

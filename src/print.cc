@@ -3,54 +3,54 @@
 #include "token.hh"
 #include "print.hh"
 
-util::PrintGlobalState::PrintGlobalState() : erroneous(false) {}
+PrintGlobalState::PrintGlobalState() : erroneous(false) {}
 
-void util::PrintGlobalState::reset()
+void PrintGlobalState::reset()
 {
     erroneous = false;
 }
 
-bool util::PrintGlobalState::hasEncounteredError() const
+bool PrintGlobalState::hasEncounteredError() const
 {
     return erroneous;
 }
 
-void util::PrintGlobalState::error(const std::string &message, int_t line, int_t col, const std::string &file)
+void PrintGlobalState::error(const std::string &message, int_t line, int_t col, const std::string &file)
 {
     erroneous = true;
     std::cerr << "\x1b[31;1merror:\x1b[0m " << message << std::endl;
     printFile(line, col, file);
 }
 
-void util::PrintGlobalState::error(const std::string &message) const
+void PrintGlobalState::error(const std::string &message) const
 {
     erroneous = true;
     std::cerr << "\x1b[31;1merror:\x1b[0m " << message << std::endl;
 }
 
-void util::PrintGlobalState::warn(const std::string &message, int_t line, int_t col, const std::string &file)
+void PrintGlobalState::warn(const std::string &message, int_t line, int_t col, const std::string &file)
 {
     std::cerr << "\x1b[33;1mwarn:\x1b[0m " << message << std::endl;
     printFile(line, col, file);
 }
 
-void util::PrintGlobalState::warn(const std::string &message) const
+void PrintGlobalState::warn(const std::string &message) const
 {
     std::cerr << "\x1b[33;1mwarn:\x1b[0m " << message << std::endl;
 }
 
-void util::PrintGlobalState::info(const std::string &message, int_t line, int_t col, const std::string &file)
+void PrintGlobalState::info(const std::string &message, int_t line, int_t col, const std::string &file)
 {
     std::cerr << "\x1b[36;1minfo:\x1b[0m " << message << std::endl;
     printFile(line, col, file);
 }
 
-void util::PrintGlobalState::info(const std::string &message) const
+void PrintGlobalState::info(const std::string &message) const
 {
     std::cerr << "\x1b[36;1minfo:\x1b[0m " << message << std::endl;
 }
 
-void util::PrintGlobalState::printFile(int_t line, int_t col, const std::string &file) const {
+void PrintGlobalState::printFile(int_t line, int_t col, const std::string &file) const {
     if (line <= 0 || col <= 0 || static_cast<int_t>(line) > file.size()) {
         std::cerr << "Invalid line or column number." << std::endl;
         return;

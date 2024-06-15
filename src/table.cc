@@ -1,11 +1,11 @@
 #include <table.hh>
 
-parser::SymbolTable::SymbolTable(util::PrintGlobalState &state)
+SymbolTable::SymbolTable(PrintGlobalState &state)
 {
     this->state = state;
 }
 
-void parser::SymbolTable::insert(const std::string &name, const Symbol &symbol)
+void SymbolTable::insert(const std::string &name, const Symbol &symbol)
 {
     if (!scopes.empty())
     {
@@ -24,7 +24,7 @@ void parser::SymbolTable::insert(const std::string &name, const Symbol &symbol)
     }
 }
 
-bool parser::SymbolTable::lookup(const std::string &name, Symbol &symbol) const
+bool SymbolTable::lookup(const std::string &name, Symbol &symbol) const
 {
     for (auto it = scopes.rbegin(); it != scopes.rend(); ++it)
     {
@@ -38,7 +38,7 @@ bool parser::SymbolTable::lookup(const std::string &name, Symbol &symbol) const
     return false;
 }
 
-parser::SymbolType parser::SymbolTable::getType(const std::string &name) const
+SymbolType SymbolTable::getType(const std::string &name) const
 {
     for (auto it = scopes.rbegin(); it != scopes.rend(); ++it)
     {
@@ -52,7 +52,7 @@ parser::SymbolType parser::SymbolTable::getType(const std::string &name) const
     return SymbolType::ERR;
 }
 
-parser::Symbol parser::SymbolTable::get(const std::string &name) const
+Symbol SymbolTable::get(const std::string &name) const
 {
     for (auto it = scopes.rbegin(); it != scopes.rend(); ++it)
     {
@@ -66,7 +66,7 @@ parser::Symbol parser::SymbolTable::get(const std::string &name) const
     return {"", SymbolType::ERR, 0};
 }
 
-bool parser::SymbolTable::check(const std::string &name) const
+bool SymbolTable::check(const std::string &name) const
 {
     for (auto it = scopes.rbegin(); it != scopes.rend(); ++it)
     {
@@ -78,12 +78,12 @@ bool parser::SymbolTable::check(const std::string &name) const
     return false;
 }
 
-void parser::SymbolTable::enterScope()
+void SymbolTable::enterScope()
 {
     scopes.push_back({});
 }
 
-void parser::SymbolTable::exitScope()
+void SymbolTable::exitScope()
 {
     if (!scopes.empty())
     {
