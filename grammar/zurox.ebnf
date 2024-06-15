@@ -1,0 +1,48 @@
+<program> ::= { <declaration> | <if_statement> | <match_statement> }
+
+<declaration> ::= <simple_declaration>
+                | <function_declaration>
+                | "struct" <identifier> <identifier> ";" 
+                | "struct" <identifier> <identifier> "=" <struct_initializer> ";"
+                | "enum" <identifier> <identifier> ";" 
+                | "enum" <identifier> <identifier> "=" <enum_initializer> ";"
+
+<simple_declaration> ::= "datatype" <identifier> [ "=" <expression> ] ";"
+                        | "datatype" <identifier> ";"
+
+<function_declaration> ::= "fn" <identifier> "(" [<parameter_list>] ")" ":" <datatype> "{" <body> "}"
+
+<parameter_list> ::= <parameter> { "," <parameter> }
+
+<parameter> ::= <datatype> <identifier>
+              | "struct" <identifier> <identifier>
+              | "enum" <identifier> <identifier>
+
+<struct_initializer> ::= <identifier> "{" <struct_fields> { <struct_fields> } "}"
+
+<struct_fields> ::= <simple_declaration>
+
+<enum_initializer> ::= <identifier> "::" <identifier>
+
+<if_statement> ::= "if" "(" <condition> ")" "{" <body> "}" 
+                  { "elif" "(" <condition> ")" "{" <body> "}" }
+                  [ "else" "{" <body> "}" ]
+
+<match_statement> ::= "match" "(" <expression> ")" "{" <case_clause> { "," <case_clause> } <null_clause> "}"
+
+<case_clause> ::= "case" <literal> { "," <literal> } "->" "{" <body> "}"
+
+<null_clause> ::= "null" "->" "{" <body> "}"
+
+<condition> ::= <expression>
+
+<expression> ::= <term> { ("==" | "!=" | "<" | ">" | "<=" | ">=" | "||" | "&&") <term> }
+
+<term> ::= <factor> { ("+" | "-" | "*" | "/" | "%") <factor> }
+
+<factor> ::= <identifier> | <number> | "(" <expression> ")"
+
+<body> ::= <declaration>
+        | <if_statement>
+        | <match_statement>
+        | <function_declaration>
