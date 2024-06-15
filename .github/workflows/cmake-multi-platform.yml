@@ -16,10 +16,9 @@ jobs:
       # Set fail-fast to false to ensure that feedback is delivered for all matrix combinations. Consider changing this to true when your workflow is stable.
       fail-fast: false
 
-      # Set up a matrix to run the following 3 configurations:
-      # 1. <Windows, Release, latest MSVC compiler toolchain on the default runner image, default generator>
-      # 2. <Linux, Release, latest GCC compiler toolchain on the default runner image, default generator>
-      # 3. <Linux, Release, latest Clang compiler toolchain on the default runner image, default generator>
+      # Set up a matrix to run the following configurations:
+      # 1. <Windows, Release, latest Clang compiler toolchain>
+      # 2. <Linux, Release, latest Clang compiler toolchain>
       #
       # To add more build types (Release, Debug, RelWithDebInfo, etc.) customize the build_type list.
       matrix:
@@ -45,10 +44,22 @@ jobs:
 
     steps:
     - uses: actions/checkout@v4
-    - name: Install LLVM and Clang
-      uses: KyleMayes/install-llvm-action@v2
-      with:
-        version: "17.0.6"
+
+    - name: Install LLVM and Clang on Ubuntu
+      if: matrix.os == 'ubuntu-latest'
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y wget lsb-release software-properties-common
+        wget https://apt.llvm.org/llvm.sh
+        chmod +x llvm.sh
+        sudo ./llvm.sh 17
+        sudo apt-get install -y clang-17
+
+    - name: Install LLVM and Clang on Windows
+      if: matrix.os == 'windows-latest'
+      run: |
+        choco install llvm --version=17.0
+        SETX PATH "%PATH%;C:\Program Files\LLVM\bin"
 
     - name: Set reusable strings
       # Turn repeated input strings (such as the build output directory) into step outputs. These step outputs can be used throughout the workflow file.
