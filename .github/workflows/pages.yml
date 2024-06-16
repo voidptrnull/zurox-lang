@@ -1,0 +1,30 @@
+name: Deploy MkDocs site to GitHub Pages
+
+on:
+  push:
+    branches:
+      - devel
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v3
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.12'
+
+    - name: Install MkDocs and plugins
+      run: |
+        pip install mkdocs-material
+
+    - name: Deploy to GitHub Pages
+      run: |
+        cd docs
+        mkdocs gh-deploy --force
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
