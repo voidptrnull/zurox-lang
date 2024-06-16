@@ -86,5 +86,6 @@ struct Token
     }
 };
 ```
+>Note: `int_t` is just `unsigned long int`.
 
 The constructors are used to create a new token, where the lexeme may be a single character as in case of seperators or a string.
