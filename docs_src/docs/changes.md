@@ -1,4 +1,4 @@
-# Changes in Zurox
+# Changes and Features of Zurox
 
 Here are some of the things that were changed/removed.
 
