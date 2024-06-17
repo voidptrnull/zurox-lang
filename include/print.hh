@@ -1,7 +1,7 @@
 #ifndef PRINT_HH
 #define PRINT_HH
 
-#include <token.hh>
+#include "token.hh"
 #include <iostream>
 
 class PrintGlobalState

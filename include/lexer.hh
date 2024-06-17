@@ -3,8 +3,8 @@
 
 #include <string>
 #include <vector>
-#include <token.hh>
-#include <print.hh>
+#include "token.hh"
+#include "print.hh"
 #include <llvm/ADT/StringRef.h>
 
 /**

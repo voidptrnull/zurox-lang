@@ -1,24 +1,24 @@
 #include <array>
 #include <algorithm>
 #include <memory>
-
+#include <optional>
+#include <string_view>
 #include <definitions.hh>
 #include <lexer.hh>
 #include <version.hh>
 
-Lexer::Lexer(const std::string &file, const std::string &file_name, PrintGlobalState &print) : line(1), col(0), file_name(file_name), print(print)
+Lexer::Lexer(const std::string &file, const std::string &file_name, PrintGlobalState &print)
+    : line(1), col(0), file_name(file_name), print(print), file(file)
 {
-    this->file = file;
 }
 
 llvm::StringRef Lexer::getFile()
 {
     return this->file;
-};
+}
 
 std::vector<Token> Lexer::lex()
 {
-
     while (col < file.length())
     {
         char c = current();
@@ -32,7 +32,7 @@ std::vector<Token> Lexer::lex()
         }
         else if (isSeperator(c))
         {
-            tokens.emplace_back(TokenType::TK_SEPERATOR, line, col, std::string(1, current()));
+            tokens.emplace_back(TokenType::TK_SEPARATOR, line, col, std::string(1, current()));
             advance();
         }
         else if (isOperator(c))
@@ -58,7 +58,7 @@ std::vector<Token> Lexer::lex()
         else
         {
             print.error("Unexpected character found.", line, col + 1, file);
-            tokens.emplace_back(TokenType::TK_SEPERATOR, line, col, std::string(1, current()));
+            tokens.emplace_back(TokenType::TK_SEPARATOR, line, col, std::string(1, current()));
             advance();
         }
     }
@@ -94,17 +94,16 @@ void Lexer::keywordOrDatatypeOrIdentifier()
         str.push_back(current());
         advance();
     }
-    print.info(str);
 
-    if (find_dt(str).found)
+    if (auto dt = find_dt(str); dt)
     {
         tokens.emplace_back(TokenType::TK_DATATYPE, line, col - str.length(), str);
     }
-    else if (find_keyword(str).found)
+    else if (auto keyword = find_keyword(str); keyword)
     {
         tokens.emplace_back(TokenType::TK_KEYWORD, line, col - str.length(), str);
     }
-    else if (find_archdt(str).found)
+    else if (auto arch_dt = find_archdt(str); arch_dt)
     {
         print.error("Found '" + str + "' which is not supported for " + _ARCH + ".", line, col - str.length(), file);
         tokens.emplace_back(TokenType::TK_KEYWORD, line, col - str.length(), str); // It can be parsed and checked so add it
@@ -112,7 +111,6 @@ void Lexer::keywordOrDatatypeOrIdentifier()
     else
     {
         tokens.emplace_back(TokenType::TK_ID, line, col - str.length(), str);
-
     }
 }
 

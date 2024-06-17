@@ -7,7 +7,7 @@ enum TokenType
 {
     TK_DATATYPE,
     TK_KEYWORD,
-    TK_SEPERATOR,
+    TK_SEPARATOR,
     TK_OPERATOR,
     TK_ID,
 
@@ -35,6 +35,7 @@ struct Token
     {
         lexeme.push_back(_lexeme);
     }
+    Token() {}
 };
 
 #endif

@@ -1,171 +1,58 @@
 #ifndef PARSER_HH
 #define PARSER_HH
 
-#include <print.hh>
-#include <token.hh>
 #include <vector>
-#include <string>
-#include <table.hh>
-#include <type_traits>
 #include <memory>
+#include <string>
+#include "token.hh"
+#include "ast.hh"
+#include "print.hh"
 
-class Node
+class Parser
 {
 public:
-    Node() = default;
-    virtual ~Node() = default;
-    virtual void accept(Visitor &visitor) = 0;
-};
+    Parser(const std::vector<Token> &tokens, const std::string &file, PrintGlobalState &print);
 
-class Body : public Node
-{
-public:
-    Body() = default;
-    ~Body();
-
-    void accept(Visitor &visitor) override;
-
-    std::vector<std::shared_ptr<Node>> statements;
-};
-
-class Expression : public Node
-{
-public:
-    Expression() = default;
-    ~Expression() = default;
-
-    void accept(Visitor &visitor) override;
-
-    Token op;
-    std::shared_ptr<Node> left;
-    std::shared_ptr<Node> right;
-};
-
-class Elif : public Node
-{
-public:
-    Elif() = default;
-    ~Elif() = default;
-
-    void accept(Visitor &visitor) override;
-
-    Body body;
-    Expression condition;
-};
-
-class If : public Node
-{
-public:
-    If() = default;
-    ~If();
-
-    void accept(Visitor &visitor) override;
-
-    std::vector<std::unique_ptr<Elif>> elifBranches;
-    std::shared_ptr<Body> elseBranch;
-    Expression condition;
-    Body body;
-};
-
-class Continue : public Node
-{
-public:
-    void accept(Visitor &visitor) override;
-};
-
-class Break : public Node
-{
-public:
-    void accept(Visitor &visitor) override;
-};
-
-class Loop : public Node
-{
-public:
-    Loop() = default;
-    ~Loop() = default;
-
-    void accept(Visitor &visitor) override;
-
-    std::shared_ptr<Body> body;
-};
-
-class CaseClause : public Node
-{
-public:
-    CaseClause() = default;
-    ~CaseClause() = default;
-
-    void accept(Visitor &visitor) override;
-
-    std::shared_ptr<Body> body;
-    Token literal;
-};
-
-class Match : public Node
-{
-public:
-    Match() = default;
-    ~Match() = default;
-
-    void accept(Visitor &visitor) override;
-
-    std::vector<std::shared_ptr<CaseClause>> caseClauses;
-    std::shared_ptr<Body> nullClause;
-};
-
-class RootNode : public Node
-{
-public:
-    RootNode() = default;
-    ~RootNode() = default;
-
-    void accept(Visitor &visitor) override;
-
-    std::vector<std::shared_ptr<Node>> nodes;
-};
-
-class Variable : public Node
-{
-public:
-    Variable() = default;
-    ~Variable() = default;
-
-    void accept(Visitor &visitor) override;
-
-    VarType type;
-    bool reference;
-    Token variable;
-};
-
-class Parser : public Visitor
-{
-public:
-    Parser(std::vector<Token> &tokens, PrintGlobalState &print, std::string &file);
-    RootNode parse();
+    std::shared_ptr<ProgramNode> parse();
 
 private:
-    int_t pos;
+    const std::vector<Token> &tokens;
+    const std::string &file;
     PrintGlobalState print;
-    std::vector<Token> tokens;
-    TokenType current();
-    std::string lcurrent();
-    int_t line_current();
-    int_t ccurrent();
-    std::string file;
-    RootNode node;
-    void consume();
-    void visit(Body &node);
-    void visit(Expression &node);
-    void visit(Elif &node);
-    void visit(If &node);
-    void visit(Continue &node);
-    void visit(Break &node);
-    void visit(Loop &node);
-    void visit(CaseClause &node);
-    void visit(Match &node);
-    void visit(RootNode &node);
-    void visit(Variable &node);
+    int_t index;
+
+    Token current_token() const;
+    Token next_token() const;
+    void advance();
+    Token match(TokenType expected_type);
+    Token match(TokenType expected_type, const std::string &expected_lexeme);
+
+    std::shared_ptr<DeclarationNode> parse_declaration();
+    std::shared_ptr<FunctionDeclarationNode> parse_function_declaration();
+    std::vector<std::shared_ptr<ParameterNode>> parse_parameters();
+    std::shared_ptr<ParameterNode> parse_parameter();
+    std::shared_ptr<TypeNode> parse_type();
+    std::shared_ptr<BlockNode> parse_block();
+    std::shared_ptr<StatementNode> parse_statement();
+    std::shared_ptr<IfStatementNode> parse_if_statement();
+    std::shared_ptr<LoopStatementNode> parse_loop_statement();
+    std::shared_ptr<VarDeclarationNode> parse_var_declaration();
+    std::shared_ptr<ExpressionStatementNode> parse_expression_statement();
+    std::shared_ptr<MatchStatementNode> parse_match_statement();
+    std::shared_ptr<CaseClauseNode> parse_case_clause();
+    std::shared_ptr<BreakStatementNode> parse_break_statement();
+    std::shared_ptr<ContinueStatementNode> parse_continue_statement();
+    std::shared_ptr<EnumDeclarationNode> parse_enum_declaration();
+    std::shared_ptr<StructDeclarationNode> parse_struct_declaration();
+
+    std::shared_ptr<ExpressionNode> parse_expression();
+    std::shared_ptr<ExpressionNode> parse_term();
+    std::shared_ptr<ExpressionNode> parse_factor();
+    std::shared_ptr<ExpressionNode> parse_unary_expr();
+    std::shared_ptr<ExpressionNode> parse_primary();
+    std::shared_ptr<LiteralNode> parse_literal();
+
+    bool is_literal(TokenType type);
 };
 
-#endif
+#endif // PARSER_HH

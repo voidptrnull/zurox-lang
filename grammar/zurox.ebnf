@@ -1,48 +1,93 @@
-<program> ::= { <declaration> | <if_statement> | <match_statement> }
+program             ::= declaration*
 
-<declaration> ::= <simple_declaration>
-                | <function_declaration>
-                | "struct" <identifier> <identifier> ";" 
-                | "struct" <identifier> <identifier> "=" <struct_initializer> ";"
-                | "enum" <identifier> <identifier> ";" 
-                | "enum" <identifier> <identifier> "=" <enum_initializer> ";"
+declaration         ::= function_declaration
+                      | enum_declaration
+                      | struct_declaration
 
-<simple_declaration> ::= "datatype" <identifier> [ "=" <expression> ] ";"
-                        | "datatype" <identifier> ";"
+function_declaration ::= 'fn' identifier '(' parameters? ')' return_type? block
 
-<function_declaration> ::= "fn" <identifier> "(" [<parameter_list>] ")" ":" <datatype> "{" <body> "}"
+parameters          ::= parameter (',' parameter)*
 
-<parameter_list> ::= <parameter> { "," <parameter> }
+parameter           ::= type identifier
 
-<parameter> ::= <datatype> <identifier>
-              | "struct" <identifier> <identifier>
-              | "enum" <identifier> <identifier>
+return_type         ::= '->' type
 
-<struct_initializer> ::= <identifier> "{" <struct_fields> { <struct_fields> } "}"
+block               ::= '{' statement* '}'
 
-<struct_fields> ::= <simple_declaration>
+statement           ::= if_statement
+                      | loop_statement
+                      | var_declaration
+                      | expression_statement
+                      | match_statement
+                      | break_statement
+                      | continue_statement
 
-<enum_initializer> ::= <identifier> "::" <identifier>
+if_statement        ::= 'if' '(' expression ')' block ('elif' '(' expression ')' block)* ('else' block)?
 
-<if_statement> ::= "if" "(" <condition> ")" "{" <body> "}" 
-                  { "elif" "(" <condition> ")" "{" <body> "}" }
-                  [ "else" "{" <body> "}" ]
+loop_statement      ::= 'loop' block
 
-<match_statement> ::= "match" "(" <expression> ")" "{" <case_clause> { "," <case_clause> } <null_clause> "}"
+var_declaration     ::= type identifier ('=' expression)? ';'
 
-<case_clause> ::= "case" <literal> { "," <literal> } "->" "{" <body> "}"
+expression_statement ::= expression ';'
 
-<null_clause> ::= "null" "->" "{" <body> "}"
+match_statement     ::= 'match' '{' (case_clause)* ('_' ':' block)? '}'
 
-<condition> ::= <expression>
+case_clause         ::= literal ':' block
 
-<expression> ::= <term> { ("==" | "!=" | "<" | ">" | "<=" | ">=" | "||" | "&&") <term> }
+break_statement     ::= 'break' ';'
 
-<term> ::= <factor> { ("+" | "-" | "*" | "/" | "%") <factor> }
+continue_statement  ::= 'continue' ';'
 
-<factor> ::= <identifier> | <number> | "(" <expression> ")"
+enum_declaration    ::= 'enum' identifier '{' enum_fields '}'
 
-<body> ::= <declaration>
-        | <if_statement>
-        | <match_statement>
-        | <function_declaration>
+enum_fields         ::= identifier (',' identifier)* ';'
+
+struct_declaration ::= 'struct' identifier '{' struct_fields '}'
+
+struct_fields       ::= type identifier (',' type identifier)* ';'
+
+expression          ::= term (('+' | '-') term)*
+
+term                ::= factor (('+' | '-') factor)*
+
+factor              ::= unary_expr (('+' | '-') unary_expr)*
+
+unary_expr          ::= primary
+                      | unary_op unary_expr
+
+primary             ::= NUMBER
+                      | STRING
+                      | CHARACTER
+                      | identifier
+                      | '(' expression ')'
+
+binary_expr         ::= factor (('*' | '/' | '%' | '+' | '-' | '<<' | '>>' | '&' | '|' | '^') factor)*
+
+type                ::= 'i8'
+                      | 'i16'
+                      | 'i32'
+                      | 'i64'
+                      | 'u8'
+                      | 'u16'
+                      | 'u32'
+                      | 'u64'
+                      | 'f32'
+                      | 'f64'
+                      | 'char'
+                      | 'bool'
+                      | 'struct' identifier
+                      | 'enum' identifier
+
+literal             ::= NUMBER
+                      | STRING
+                      | CHARACTER
+
+unary_op            ::= '+'
+                      | '-'
+                      | '!'
+                      | '~'
+
+identifier          ::= [a-zA-Z_][a-zA-Z0-9_]*
+NUMBER              ::= [0-9]+
+STRING              ::= '"' [^"]* '"'
+CHARACTER           ::= '\'' [^'] '\''

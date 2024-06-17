@@ -4,9 +4,9 @@
 #include <string>
 #include <vector>
 #include <unordered_map>
-#include <token.hh>
-#include <print.hh>
-#include <visitor.hh>
+#include "token.hh"
+#include "print.hh"
+#include "parser.hh"
 
 // Reuse definitions
 typedef VarType SymbolType;
