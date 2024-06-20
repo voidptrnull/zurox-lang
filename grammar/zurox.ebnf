@@ -105,8 +105,7 @@ identifier          ::= [a-zA-Z_][a-zA-Z0-9_]*
 
 asm_block_statement ::= 'asm' '{' asm_instructions '}'
 
-asm_instructions    ::= asm_instruction*
-                      | asm_instruction+
+asm_instructions    ::= asm_instruction+
 
 asm_instruction     ::= STRING
 
