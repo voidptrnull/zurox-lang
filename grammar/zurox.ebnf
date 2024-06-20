@@ -48,9 +48,9 @@ struct_fields       ::= type identifier (',' type identifier)* ';'
 
 expression          ::= term (('+' | '-') term)*
 
-term                ::= factor (('+' | '-') factor)*
+term                ::= factor (('*' | '/' | '%') factor)*
 
-factor              ::= unary_expr (('+' | '-') unary_expr)*
+factor              ::= unary_expr (('^') unary_expr)*
 
 unary_expr          ::= primary
                       | unary_op unary_expr
@@ -60,8 +60,6 @@ primary             ::= NUMBER
                       | CHARACTER
                       | identifier
                       | '(' expression ')'
-
-binary_expr         ::= factor (('*' | '/' | '%' | '+' | '-' | '<<' | '>>' | '&' | '|' | '^') factor)*
 
 type                ::= 'i8'
                       | 'i16'
@@ -87,7 +85,12 @@ unary_op            ::= '+'
                       | '!'
                       | '~'
 
-identifier          ::= [a-zA-Z_][a-zA-Z0-9_]*
-NUMBER              ::= [0-9]+
-STRING              ::= '"' [^"]* '"'
-CHARACTER           ::= '\'' [^'] '\''
+identifier          ::= letter (letter | digit | '_')*
+letter              ::= [a-zA-Z_]
+digit               ::= [0-9]
+
+NUMBER              ::= digit+
+STRING              ::= '"' character* '"'
+CHARACTER           ::= '\'' character '\''
+
+character           ::= [^"] | '\\' [\\'"bfnrt]
