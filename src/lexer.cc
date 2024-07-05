@@ -8,13 +8,8 @@
 #include <version.hh>
 
 Lexer::Lexer(const std::string &file, const std::string &file_name, PrintGlobalState &print)
-    : line(1), col(0), file_name(file_name), print(print), file(file)
+    : line(1), col(0), file(file), file_name(file_name), print(print)
 {
-}
-
-llvm::StringRef Lexer::getFile()
-{
-    return this->file;
 }
 
 std::vector<Token> Lexer::lex()
@@ -58,7 +53,7 @@ std::vector<Token> Lexer::lex()
         else
         {
             print.error("Unexpected character found.", line, col + 1, file);
-            tokens.emplace_back(TokenType::TK_SEPARATOR, line, col, std::string(1, current()));
+            tokens.emplace_back(TokenType::TK_ERR, line, col, std::string(1, current()));
             advance();
         }
     }
@@ -66,22 +61,26 @@ std::vector<Token> Lexer::lex()
     return tokens;
 }
 
-inline char Lexer::current() const
+char Lexer::current() const
 {
-    return file[col];
+    if (col < file.length())
+    {
+        return file.at(col);
+    }
+    return '\0'; // Return null character if out of bounds
 }
 
-inline char Lexer::peek() const
+char Lexer::peek() const
 {
     return col + 1 < file.size() ? file[col + 1] : '\0';
 }
 
-inline char Lexer::previous() const
+char Lexer::previous() const
 {
-    return file.at(col - 1);
+    return col > 0 ? file.at(col - 1) : '\0'; // Return null character if at beginning
 }
 
-inline void Lexer::advance()
+void Lexer::advance()
 {
     col++;
 }
@@ -103,11 +102,6 @@ void Lexer::keywordOrDatatypeOrIdentifier()
     {
         tokens.emplace_back(TokenType::TK_KEYWORD, line, col - str.length(), str);
     }
-    else if (auto arch_dt = find_archdt(str); arch_dt)
-    {
-        print.error("Found '" + str + "' which is not supported for " + _ARCH + ".", line, col - str.length(), file);
-        tokens.emplace_back(TokenType::TK_KEYWORD, line, col - str.length(), str); // It can be parsed and checked so add it
-    }
     else
     {
         tokens.emplace_back(TokenType::TK_ID, line, col - str.length(), str);
@@ -117,28 +111,160 @@ void Lexer::keywordOrDatatypeOrIdentifier()
 void Lexer::number()
 {
     std::string str;
-    while (isdigit(current()) || current() == '.' || current() == 'x' || current() == 'e' || current() == 'E' || current() == '+' || current() == '-')
+
+    // Check for negative sign
+    if (current() == '-')
     {
         str.push_back(current());
         advance();
     }
 
-    try
+    // Determine number type based on prefix
+    if (current() == '0')
     {
-        if (str.find('.') != std::string::npos || str.find('e') != std::string::npos || str.find('E') != std::string::npos)
+        advance();
+        if (current() == 'x')
+        { // Hexadecimal integer or float
+            str.push_back('0');
+            str.push_back('x');
+            advance();
+            while (isxdigit(current()))
+            {
+                str.push_back(current());
+                advance();
+            }
+            if (current() == '.')
+            {
+                str.push_back(current());
+                advance();
+                while (isxdigit(current()))
+                {
+                    str.push_back(current());
+                    advance();
+                }
+                if (tolower(current()) == 'e')
+                {
+                    str.push_back(current());
+                    advance();
+                    if (current() == '+' || current() == '-')
+                    {
+                        str.push_back(current());
+                        advance();
+                    }
+                    while (isdigit(current()))
+                    {
+                        str.push_back(current());
+                        advance();
+                    }
+                }
+                tokens.emplace_back(TokenType::TKL_FLOAT, line, col - str.length(), str);
+            }
+            else
+            {
+                tokens.emplace_back(TokenType::TKL_INT, line, col - str.length(), str);
+            }
+        }
+        else if (current() == 'o')
+        { // Octal integer
+            str.push_back('0');
+            str.push_back('o');
+            advance();
+            while (current() >= '0' && current() <= '7')
+            {
+                str.push_back(current());
+                advance();
+            }
+            tokens.emplace_back(TokenType::TKL_INT, line, col - str.length(), str);
+        }
+        else if (current() == 'b')
+        { // Binary integer
+            str.push_back('0');
+            str.push_back('b');
+            advance();
+            while (current() == '0' || current() == '1')
+            {
+                str.push_back(current());
+                advance();
+            }
+            tokens.emplace_back(TokenType::TKL_INT, line, col - str.length(), str);
+        }
+        else
+        { // Decimal integer or float starting with zero
+            str.push_back('0');
+            while (isdigit(current()))
+            {
+                str.push_back(current());
+                advance();
+            }
+            if (current() == '.')
+            {
+                str.push_back(current());
+                advance();
+                while (isdigit(current()))
+                {
+                    str.push_back(current());
+                    advance();
+                }
+                if (tolower(current()) == 'e')
+                {
+                    str.push_back(current());
+                    advance();
+                    if (current() == '+' || current() == '-')
+                    {
+                        str.push_back(current());
+                        advance();
+                    }
+                    while (isdigit(current()))
+                    {
+                        str.push_back(current());
+                        advance();
+                    }
+                }
+                tokens.emplace_back(TokenType::TKL_FLOAT, line, col - str.length(), str);
+            }
+            else
+            {
+                tokens.emplace_back(TokenType::TKL_INT, line, col - str.length(), str);
+            }
+        }
+    }
+    else
+    { // Decimal integer or float
+        while (isdigit(current()))
         {
-            std::stod(str);
+            str.push_back(current());
+            advance();
+        }
+        if (current() == '.')
+        {
+            str.push_back(current());
+            advance();
+            while (isdigit(current()))
+            {
+                str.push_back(current());
+                advance();
+            }
+            if (tolower(current()) == 'e')
+            {
+                str.push_back(current());
+                advance();
+                if (current() == '+' || current() == '-')
+                {
+                    str.push_back(current());
+                    advance();
+                }
+                while (isdigit(current()))
+                {
+                    str.push_back(current());
+                    advance();
+                }
+            }
             tokens.emplace_back(TokenType::TKL_FLOAT, line, col - str.length(), str);
         }
         else
         {
-            std::stoll(str);
             tokens.emplace_back(TokenType::TKL_INT, line, col - str.length(), str);
         }
-    }
-    catch (const std::exception &)
-    {
-        print.error("Invalid number format.", line, col - str.length(), file);
     }
 }
 
@@ -260,6 +386,5 @@ void Lexer::handleComment()
         {
             advance();
         }
-        return;
     }
 }

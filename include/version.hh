@@ -10,9 +10,15 @@
 #define _VER_NUM "0.0.1-alpha"
 #endif
 
+/* This is for debugging purposes. This identifies the architecture instruction built for.*/
+#ifndef BUILD_ARCH
+#define BUILD_ARCH "native"
+#endif
+
 #ifndef _ARCH
 #ifdef __x86_64__
 #define _ARCH "amd64"
+
 #elif defined(_M_X64)
 #define _ARCH "x86_64"
 #elif defined(__aarch64__)
@@ -78,7 +84,7 @@ inline std::string get_os_release_name()
 
 #ifndef __SET_OS_NAME
 #define __SET_OS_NAME
-inline std::string get_version()
+const inline std::string get_version()
 {
     static std::string VERSION = std::string(_VER_NUM) + " ";
 #ifdef __linux__
@@ -86,7 +92,7 @@ inline std::string get_version()
 #else
     VERSION += _OS;
 #endif
-    VERSION += " " + std::string(_ARCH);
+    VERSION += " " + std::string(_ARCH) + ".\nBuilt for '" BUILD_ARCH "' architecture/instruction set.";
     return VERSION;
 }
 #endif

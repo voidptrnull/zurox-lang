@@ -4,3 +4,6 @@ build/
 *.gch
 venv/
 site/
+Testing/
+install/
+llvm.sh

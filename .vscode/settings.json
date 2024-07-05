@@ -78,7 +78,9 @@
         "regex": "cpp",
         "csignal": "cpp",
         "any": "cpp",
-        "forward_list": "cpp"
+        "forward_list": "cpp",
+        "strstream": "cpp",
+        "cfenv": "cpp"
     },
 
     "yaml.schemas": {
@@ -92,5 +94,6 @@
         "tag:yaml.org,2002:python/name:material.extensions.emoji.to_svg",
         "tag:yaml.org,2002:python/name:material.extensions.emoji.twemoji",
         "tag:yaml.org,2002:python/name:pymdownx.superfences.fence_code_format"
-    ]
+    ],
+    "C_Cpp.default.configurationProvider": "mesonbuild.mesonbuild"
 }

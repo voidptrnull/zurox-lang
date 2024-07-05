@@ -1,4 +1,4 @@
-# 1. Tokens Documentation
+# 1. Tokens
 
 Each token is treated as single word.
 

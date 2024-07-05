@@ -1,252 +1,179 @@
 #ifndef AST_HH
 #define AST_HH
 
+#include <token.hh>
 #include <memory>
 #include <vector>
-#include <string>
-#include "token.hh"
 
-// Forward declaration of AST classes
-class ASTNode;
-class ProgramNode;
-class DeclarationNode;
-class FunctionDeclarationNode;
-class EnumDeclarationNode;
-class StructDeclarationNode;
-class ParameterNode;
-class BlockNode;
-class StatementNode;
-class IfStatementNode;
-class LoopStatementNode;
-class VarDeclarationNode;
-class ExpressionStatementNode;
-class MatchStatementNode;
-class CaseClauseNode;
-class BreakStatementNode;
-class ContinueStatementNode;
-class EnumFieldsNode;
-class StructFieldsNode;
-class ExpressionNode;
-class BinaryExprNode;
-class UnaryExprNode;
-class PrimaryExprNode;
-class LiteralNode;
-class TypeNode;
-class IdentifierNode;
-
-// Base AST
-class ASTNode {
+class ASTNode
+{
 public:
     virtual ~ASTNode() = default;
 };
 
-// Program node representing the entire program
-class ProgramNode : public ASTNode {
+class LiteralASTNode : public ASTNode
+{
 public:
-    ProgramNode(std::vector<std::shared_ptr<DeclarationNode>> declarations)
-        : declarations(std::move(declarations)) {}
-    std::vector<std::shared_ptr<DeclarationNode>> declarations;
+    Token token;
+    LiteralASTNode(const Token &_token) : token(_token) {}
 };
 
-// Base class for declarations
-class DeclarationNode : public ASTNode {};
-
-// Function declaration node
-class FunctionDeclarationNode : public DeclarationNode {
+class UnaryOp
+{
 public:
-    FunctionDeclarationNode(std::string name, std::vector<std::shared_ptr<ParameterNode>> parameters,
-                            std::shared_ptr<TypeNode> return_type, std::shared_ptr<BlockNode> body)
-        : name(std::move(name)), parameters(std::move(parameters)), return_type(std::move(return_type)), body(std::move(body)) {}
-    std::string name;
-    std::vector<std::shared_ptr<ParameterNode>> parameters;
-    std::shared_ptr<TypeNode> return_type;
-    std::shared_ptr<BlockNode> body;
+    const char l;
+    UnaryOp(const char &l) : l(l) {}
 };
 
-
-// Parameter node
-class ParameterNode : public ASTNode {
+class UnaryExprASTNode : public ASTNode
+{
 public:
-    ParameterNode(std::shared_ptr<TypeNode> type, std::string name)
-        : type(std::move(type)), name(std::move(name)) {}
+    std::shared_ptr<UnaryOp> op;
 
-    std::shared_ptr<TypeNode> type;
-    std::string name;
+    UnaryExprASTNode(std::shared_ptr<UnaryOp> _op)
+        : op(_op) {}
 };
 
-// Base class for statements
-class StatementNode : public ASTNode {};
-
-// Block node
-class BlockNode : public StatementNode {
+class BinaryExprASTNode : public ASTNode
+{
 public:
-    BlockNode(std::vector<std::shared_ptr<StatementNode>> statements)
-        : statements(std::move(statements)) {}
+    Token op;
+    std::shared_ptr<ASTNode> left;
+    std::shared_ptr<ASTNode> right;
 
-    std::vector<std::shared_ptr<StatementNode>> statements;
+    BinaryExprASTNode(const Token &_op, std::shared_ptr<ASTNode> _left, std::shared_ptr<ASTNode> _right)
+        : op(_op), left(_left), right(_right) {}
 };
 
-// If statement node
-class IfStatementNode : public StatementNode {
+class VarASTNode : public ASTNode
+{
 public:
-    IfStatementNode(std::shared_ptr<ExpressionNode> condition, std::shared_ptr<BlockNode> then_block,
-                    std::vector<std::shared_ptr<IfStatementNode>> elif_statements,
-                    std::shared_ptr<BlockNode> else_block)
-        : condition(std::move(condition)), then_block(std::move(then_block)),
-          elif_statements(std::move(elif_statements)), else_block(std::move(else_block)) {}
-
-    std::shared_ptr<ExpressionNode> condition;
-    std::shared_ptr<BlockNode> then_block;
-    std::vector<std::shared_ptr<IfStatementNode>> elif_statements;
-    std::shared_ptr<BlockNode> else_block;
+    Token identifier;
 };
 
-// Loop statement node
-class LoopStatementNode : public StatementNode {
+class VarDeclASTNode : public ASTNode
+{
 public:
-    LoopStatementNode(std::shared_ptr<BlockNode> body)
-        : body(std::move(body)) {}
+    Token type;
+    Token identifier;
+    std::shared_ptr<ASTNode> initializer; // Optional initializer expression
 
-
-    std::shared_ptr<BlockNode> body;
+    VarDeclASTNode(const Token &_type, const Token &_identifier, std::shared_ptr<ASTNode> _initializer = nullptr)
+        : type(_type), identifier(_identifier), initializer(_initializer) {}
 };
 
-// Variable declaration node
-class VarDeclarationNode : public StatementNode {
+class BlockASTNode : public ASTNode
+{
 public:
-    VarDeclarationNode(std::shared_ptr<TypeNode> type, std::string name, std::shared_ptr<ExpressionNode> initializer)
-        : type(std::move(type)), name(std::move(name)), initializer(std::move(initializer)) {}
+    std::vector<std::shared_ptr<ASTNode>> statements;
 
-
-    std::shared_ptr<TypeNode> type;
-    std::string name;
-    std::shared_ptr<ExpressionNode> initializer;
+    BlockASTNode(const std::vector<std::shared_ptr<ASTNode>> &_statements)
+        : statements(_statements) {}
 };
 
-// Expression statement node
-class ExpressionStatementNode : public StatementNode {
+class IfStmtASTNode : public ASTNode
+{
 public:
-    ExpressionStatementNode(std::shared_ptr<ExpressionNode> expression)
-        : expression(std::move(expression)) {}
+    std::shared_ptr<ASTNode> condition;
+    std::shared_ptr<BlockASTNode> ifBlock;
+    std::vector<std::pair<std::shared_ptr<ASTNode>, std::shared_ptr<BlockASTNode>>> elifBlocks;
+    std::shared_ptr<BlockASTNode> elseBlock; // Optional
 
-
-    std::shared_ptr<ExpressionNode> expression;
+    IfStmtASTNode(std::shared_ptr<ASTNode> _condition, std::shared_ptr<BlockASTNode> _ifBlock,
+                  const std::vector<std::pair<std::shared_ptr<ASTNode>, std::shared_ptr<BlockASTNode>>> &_elifBlocks,
+                  std::shared_ptr<BlockASTNode> _elseBlock)
+        : condition(_condition), ifBlock(_ifBlock), elifBlocks(_elifBlocks), elseBlock(_elseBlock) {}
 };
 
-// Match statement node
-class MatchStatementNode : public StatementNode {
+class LoopStmtASTNode : public ASTNode
+{
 public:
-    MatchStatementNode(std::vector<std::shared_ptr<CaseClauseNode>> cases, std::shared_ptr<BlockNode> default_block)
-        : cases(std::move(cases)), default_block(std::move(default_block)) {}
+    std::shared_ptr<BlockASTNode> loopBlock;
 
-
-    std::vector<std::shared_ptr<CaseClauseNode>> cases;
-    std::shared_ptr<BlockNode> default_block;
+    LoopStmtASTNode(std::shared_ptr<BlockASTNode> _loopBlock)
+        : loopBlock(_loopBlock) {}
 };
 
-// Case clause node
-class CaseClauseNode : public ASTNode {
+class ReturnStmtASTNode : public ASTNode
+{
 public:
-    CaseClauseNode(std::shared_ptr<LiteralNode> literal, std::shared_ptr<BlockNode> block)
-        : literal(std::move(literal)), block(std::move(block)) {}
+    std::shared_ptr<ASTNode> expression; // Optional return expression
 
-
-    std::shared_ptr<LiteralNode> literal;
-    std::shared_ptr<BlockNode> block;
+    ReturnStmtASTNode(std::shared_ptr<ASTNode> _expression)
+        : expression(_expression) {}
 };
 
-// Break statement node
-class BreakStatementNode : public StatementNode {};
-
-// Continue statement node
-class ContinueStatementNode : public StatementNode {};
-
-// Enum declaration node
-class EnumDeclarationNode : public DeclarationNode {
+class FunctionDeclASTNode : public ASTNode
+{
 public:
-    EnumDeclarationNode(std::string name, std::vector<std::string> fields)
-        : name(std::move(name)), fields(std::move(fields)) {}
+    Token identifier;
+    std::vector<std::shared_ptr<ASTNode>> parameters;
+    Token returnType;
+    std::shared_ptr<BlockASTNode> body;
 
-
-    std::string name;
-    std::vector<std::string> fields;
+    FunctionDeclASTNode(const Token &_identifier, const std::vector<std::shared_ptr<ASTNode>> &_parameters, const Token &_returnType, std::shared_ptr<BlockASTNode> _body)
+        : identifier(_identifier), parameters(_parameters), returnType(_returnType), body(_body) {}
 };
 
-// Struct declaration node
-class StructDeclarationNode : public DeclarationNode {
+class StructDeclASTNode : public ASTNode
+{
 public:
-    StructDeclarationNode(std::string name, std::vector<std::pair<std::shared_ptr<TypeNode>, std::string>> fields)
-        : name(std::move(name)), fields(std::move(fields)) {}
+    Token identifier;
+    std::vector<std::pair<Token, Token>> fields; // Type and identifier pairs
 
-
-    std::string name;
-    std::vector<std::pair<std::shared_ptr<TypeNode>, std::string>> fields;
+    StructDeclASTNode(const Token &_identifier, const std::vector<std::pair<Token, Token>> &_fields)
+        : identifier(_identifier), fields(_fields) {}
 };
 
-// Expression node base class
-class ExpressionNode : public ASTNode {};
-
-// Binary expression node
-class BinaryExprNode : public ExpressionNode {
+class EnumDeclASTNode : public ASTNode
+{
 public:
-    BinaryExprNode(std::shared_ptr<ExpressionNode> left, std::string op, std::shared_ptr<ExpressionNode> right)
-        : left(std::move(left)), op(std::move(op)), right(std::move(right)) {}
+    Token identifier;
+    std::vector<Token> fields;
 
-
-    std::shared_ptr<ExpressionNode> left;
-    std::string op;
-    std::shared_ptr<ExpressionNode> right;
+    EnumDeclASTNode(const Token &_identifier, const std::vector<Token> &_fields)
+        : identifier(_identifier), fields(_fields) {}
 };
 
-// Unary expression node
-class UnaryExprNode : public ExpressionNode {
+class AsmBlockStmntASTNode : public ASTNode
+{
 public:
-    UnaryExprNode(std::string op, std::shared_ptr<ExpressionNode> operand)
-        : op(std::move(op)), operand(std::move(operand)) {}
+    std::string left;
+    std::shared_ptr<VarASTNode> identifier;
+    std::string right;
 
-
-    std::string op;
-    std::shared_ptr<ExpressionNode> operand;
+    AsmBlockStmntASTNode(const std::string &_left, const VarASTNode &_identifier, const std::string &_right)
+        : left(_left), identifier(std::make_shared<VarASTNode>(_identifier)), right(_right) {}
 };
 
-// Primary expression node
-class PrimaryExprNode : public ExpressionNode {
+class AsmBlockASTNode : public ASTNode
+{
 public:
-    PrimaryExprNode(std::string value)
-        : value(std::move(value)) {}
+    std::vector<AsmBlockStmntASTNode> statements;
 
-
-    std::string value;
+    AsmBlockASTNode(const std::vector<AsmBlockStmntASTNode> &_statements)
+        : statements(_statements) {}
 };
 
-// Literal node
-class LiteralNode : public ExpressionNode {
+class CaseClauseASTNode : public ASTNode
+{
 public:
-    LiteralNode(const std::string &value, TokenType type)
-        : value(value), type(type) {}
+    std::shared_ptr<ASTNode> pattern;
+    std::shared_ptr<BlockASTNode> block;
 
-    std::string value;
-    TokenType type;
+    CaseClauseASTNode(std::shared_ptr<ASTNode> _pattern, std::shared_ptr<BlockASTNode> _block)
+        : pattern(_pattern), block(_block) {}
 };
 
-// Type node
-class TypeNode : public ASTNode {
+class MatchStmtASTNode : public ASTNode
+{
 public:
-    TypeNode(std::string name)
-        : name(std::move(name)) {}
+    std::shared_ptr<ASTNode> expression;
+    std::vector<std::shared_ptr<CaseClauseASTNode>> cases;
+    std::shared_ptr<BlockASTNode> defaultCase; // Optional default case
 
-
-    std::string name;
-};
-
-// Identifier node
-class IdentifierNode : public ASTNode {
-public:
-    IdentifierNode(std::string name)
-        : name(std::move(name)) {}
-
-
-    std::string name;
+    MatchStmtASTNode(std::shared_ptr<ASTNode> _expression, const std::vector<std::shared_ptr<CaseClauseASTNode>> &_cases, std::shared_ptr<BlockASTNode> _defaultCase)
+        : expression(_expression), cases(_cases), defaultCase(_defaultCase) {}
 };
 
 #endif

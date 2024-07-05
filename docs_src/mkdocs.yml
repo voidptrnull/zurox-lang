@@ -8,8 +8,10 @@ theme:
   features:
     - content.code.copy
     - content.code.select
+    - search.highlight
+    - content.code.annotate
   font:
-    code: Space Mono
+    code: IBM Plex Mono
   name: material
   palette:
     - scheme: default

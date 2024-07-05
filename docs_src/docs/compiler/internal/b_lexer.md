@@ -1,4 +1,4 @@
-# 2. Lexer Documentation
+# 2. Lexer
 
 ## Overview
 

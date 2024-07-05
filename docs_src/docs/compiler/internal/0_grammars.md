@@ -1,3 +1,10 @@
+# 0. Grammar
+
+Before delving more into the implementation of the language, it is important to state the obvious - the grammar of the language. So here it is in ISO 14977 E-BNF format:
+
+>Note: If it is not obvious, the grammar of the language is CFG
+
+```ebnf
 integer = decimal_integer | hexadecimal_integer | octal_integer | binary_integer ;
 decimal_integer = ["-"], decimal_digit, { decimal_digit }, [integer_suffix] ;
 hexadecimal_integer = "0x", hex_digit, { hex_digit }, [integer_suffix] ;
@@ -23,8 +30,6 @@ letter = "A" | "B" | "C" | "D" | "E" | "F" | "G" | "H" | "I" | "J" | "K" | "L" |
          "a" | "b" | "c" | "d" | "e" | "f" | "g" | "h" | "i" | "j" | "k" | "l" | "m" |
          "n" | "o" | "p" | "q" | "r" | "s" | "t" | "u" | "v" | "w" | "x" | "y" | "z" ;
 
-
-(* Unicode is also allowed. I am too lazy to specify it. *)
 identifier          = letter , { letter | decimal_digit | "_" } ;
 NUMBER = integer | float ;
 STRING              = '"' , { character - '"' } , '"' ;
@@ -90,8 +95,7 @@ statement           = if_statement
                     | match_statement
                     | break_statement
                     | continue_statement 
-                    | ret_statement
-                    | asm_block;
+                    | ret_statement;
 
 asm_block           = "asm","{", [ asm_statements ], "}" ;
 
@@ -111,7 +115,7 @@ expression_statement = expression , ";" ;
 
 match_statement     = "match" , "{" , { case_clause } , [ "_" , ":" , block ] , "}" ;
 
-case_clause         = literal, {",", literal } , "->" , block ;
+case_clause         = literal , ":" , block ;
 
 break_statement     = "break" , ";" ;
 
@@ -129,7 +133,7 @@ struct_declaration  = "struct" , identifier , "{" , struct_fields , "}" ;
 
 declaration         = function_declaration
                     | enum_declaration
-                    | struct_declaration 
-                    | asm_block;
+                    | struct_declaration ;
 
 program             = { declaration } ;
+```

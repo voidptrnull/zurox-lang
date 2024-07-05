@@ -3,9 +3,8 @@
 
 #include <string>
 #include <vector>
-#include "token.hh"
-#include "print.hh"
-#include <llvm/ADT/StringRef.h>
+#include <token.hh>
+#include <print.hh>
 
 /**
  * @brief Lexer class for lexical analysis of a source file.
@@ -26,18 +25,11 @@ public:
      * @return Vector of tokens generated from the lexing process.
      */
     std::vector<Token> lex();
-
-    /**
-     * @brief Get the content of the file being lexed.
-     * @return Reference to the file content.
-     */
-    llvm::StringRef getFile();
-
 private:
     size_t line, col;                ///< Current line and column in the file.
     std::vector<Token> tokens;       ///< Tokens generated during lexing.
-    std::string file;                ///< Content of the file to lex.
-    std::string file_name;           ///< Name of the file being lexed.
+    const std::string file;                ///< Content of the file to lex.
+    const std::string file_name;           ///< Name of the file being lexed.
     PrintGlobalState &print;         ///< Reference to PrintGlobalState for printing.
 
     /**
@@ -105,7 +97,7 @@ private:
     /**
      * @brief Handle comments.
      */
-    void handleComment();
+    void handleComment();    
 };
 
 #endif
