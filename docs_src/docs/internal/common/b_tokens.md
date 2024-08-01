@@ -1,4 +1,4 @@
-# 1. Tokens
+# Tokens
 
 Each token is treated as single word.
 

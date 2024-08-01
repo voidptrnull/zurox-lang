@@ -1,4 +1,4 @@
-# 0. Grammar
+# Grammar
 
 Before delving more into the implementation of the language, it is important to state the obvious - the grammar of the language. So here it is in ISO 14977 E-BNF format:
 
@@ -30,8 +30,9 @@ letter = "A" | "B" | "C" | "D" | "E" | "F" | "G" | "H" | "I" | "J" | "K" | "L" |
          "a" | "b" | "c" | "d" | "e" | "f" | "g" | "h" | "i" | "j" | "k" | "l" | "m" |
          "n" | "o" | "p" | "q" | "r" | "s" | "t" | "u" | "v" | "w" | "x" | "y" | "z" ;
 
+(* Unicode is also allowed. I am too lazy to specify it. *)
 identifier          = letter , { letter | decimal_digit | "_" } ;
-NUMBER = integer | float ;
+NUMBER              = integer | float ;
 STRING              = '"' , { character - '"' } , '"' ;
 CHARACTER           = "'" , ( character - "'" ) , "'" ;
 
@@ -42,7 +43,9 @@ literal             = NUMBER
 unary_op            = "+"
                     | "-"
                     | "!"
-                    | "~" ;
+                    | "~"
+                    | "ref"
+                    | "deref" ;
 
 type                = "i8"
                     | "i16"
@@ -70,15 +73,25 @@ primary             = literal
 unary_expr          = primary
                     | unary_op , unary_expr ;
 
-factor              = unary_expr , { ("+" | "-") , unary_expr } ;
+factor              = unary_expr , { ("*" | "/" | "%") , unary_expr } ;
 
 term                = factor , { ("+" | "-") , factor } ;
 
-expression          = "ref", expression
-                    | "deref", expression 
-                    | term , { ("+" | "-") , term } ;
+shift_expr          = term , { ("<<" | ">>") , term } ;
 
-binary_expr         = factor , { ("*" | "/" | "%" | "+" | "-" | "<<" | ">>" | "&" | "|" | "^") , factor } ;
+and_expr            = shift_expr , { "&" , shift_expr } ;
+
+xor_expr            = and_expr , { "^" , and_expr } ;
+
+or_expr             = xor_expr , { "|" , xor_expr } ;
+
+comparison          = or_expr , { ("==" | "!=" | "<" | "<=" | ">" | ">=") , or_expr } ;
+
+logical_and_expr    = comparison , { "&&" , comparison } ;
+
+logical_or_expr     = logical_and_expr , { "||" , logical_and_expr } ;
+
+expression          = logical_or_expr;
 
 parameter           = type , identifier ;
 
@@ -95,13 +108,21 @@ statement           = if_statement
                     | match_statement
                     | break_statement
                     | continue_statement 
-                    | ret_statement;
+                    | ret_statement
+                    | asm_block
+                    | llvm_block ;
 
 asm_block           = "asm","{", [ asm_statements ], "}" ;
 
 asm_statements      = asm_statement ,{ "," , asm_statement } ;
 
 asm_statement       = STRING , [ "+", identifier, ["+", STRING] ] ;
+
+llvm_block          = "llvm", "{", [ llvm_statements ], "}" ;
+
+llvm_statements     = llvm_statement, { "," , llvm_statement } ;
+
+llvm_statement      = STRING, [ "+", identifier, ["+", STRING] ] ;
 
 ret_statement       = "ret", [expression];
 
@@ -113,9 +134,9 @@ var_declaration     = type , identifier , [ "=" , expression ] , ";" ;
 
 expression_statement = expression , ";" ;
 
-match_statement     = "match" , "{" , { case_clause } , [ "_" , ":" , block ] , "}" ;
+match_statement     = "match" , "{" , { case_clause } , [ "_" , "->" , block ] , "}" ;
 
-case_clause         = literal , ":" , block ;
+case_clause         = literal, {",", literal } , "->" , block ;
 
 break_statement     = "break" , ";" ;
 
@@ -133,7 +154,9 @@ struct_declaration  = "struct" , identifier , "{" , struct_fields , "}" ;
 
 declaration         = function_declaration
                     | enum_declaration
-                    | struct_declaration ;
+                    | struct_declaration 
+                    | asm_block
+                    | llvm_block ;
 
 program             = { declaration } ;
 ```

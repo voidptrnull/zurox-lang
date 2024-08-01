@@ -1,16 +1,17 @@
+/**
+ * This file is part of the Zurox project.
+ * Licensed under the BSD 3-Clause License. See LICENSE file for details.
+ * (C) 2024 Subhadip Roy Chowdhury
+ */
+
 #include <array>
 #include <algorithm>
-#include <memory>
-#include <optional>
-#include <string_view>
 #include <definitions.hh>
 #include <lexer.hh>
 #include <version.hh>
 
 Lexer::Lexer(const std::string &file, const std::string &file_name, PrintGlobalState &print)
-    : line(1), col(0), file(file), file_name(file_name), print(print)
-{
-}
+    : line(1), col(0), file(file), file_name(file_name), print(print) {}
 
 std::vector<Token> Lexer::lex()
 {
@@ -112,14 +113,6 @@ void Lexer::number()
 {
     std::string str;
 
-    // Check for negative sign
-    if (current() == '-')
-    {
-        str.push_back(current());
-        advance();
-    }
-
-    // Determine number type based on prefix
     if (current() == '0')
     {
         advance();
@@ -133,36 +126,8 @@ void Lexer::number()
                 str.push_back(current());
                 advance();
             }
-            if (current() == '.')
-            {
-                str.push_back(current());
-                advance();
-                while (isxdigit(current()))
-                {
-                    str.push_back(current());
-                    advance();
-                }
-                if (tolower(current()) == 'e')
-                {
-                    str.push_back(current());
-                    advance();
-                    if (current() == '+' || current() == '-')
-                    {
-                        str.push_back(current());
-                        advance();
-                    }
-                    while (isdigit(current()))
-                    {
-                        str.push_back(current());
-                        advance();
-                    }
-                }
-                tokens.emplace_back(TokenType::TKL_FLOAT, line, col - str.length(), str);
-            }
-            else
-            {
-                tokens.emplace_back(TokenType::TKL_INT, line, col - str.length(), str);
-            }
+            tokens.emplace_back(TokenType::TKL_INT, line, col - str.length(), str);
+            return;
         }
         else if (current() == 'o')
         { // Octal integer
@@ -175,6 +140,7 @@ void Lexer::number()
                 advance();
             }
             tokens.emplace_back(TokenType::TKL_INT, line, col - str.length(), str);
+            return;
         }
         else if (current() == 'b')
         { // Binary integer
@@ -187,84 +153,45 @@ void Lexer::number()
                 advance();
             }
             tokens.emplace_back(TokenType::TKL_INT, line, col - str.length(), str);
-        }
-        else
-        { // Decimal integer or float starting with zero
-            str.push_back('0');
-            while (isdigit(current()))
-            {
-                str.push_back(current());
-                advance();
-            }
-            if (current() == '.')
-            {
-                str.push_back(current());
-                advance();
-                while (isdigit(current()))
-                {
-                    str.push_back(current());
-                    advance();
-                }
-                if (tolower(current()) == 'e')
-                {
-                    str.push_back(current());
-                    advance();
-                    if (current() == '+' || current() == '-')
-                    {
-                        str.push_back(current());
-                        advance();
-                    }
-                    while (isdigit(current()))
-                    {
-                        str.push_back(current());
-                        advance();
-                    }
-                }
-                tokens.emplace_back(TokenType::TKL_FLOAT, line, col - str.length(), str);
-            }
-            else
-            {
-                tokens.emplace_back(TokenType::TKL_INT, line, col - str.length(), str);
-            }
+            return;
         }
     }
-    else
-    { // Decimal integer or float
+
+    // Decimal integer or float
+    while (isdigit(current()))
+    {
+        str.push_back(current());
+        advance();
+    }
+    if (current() == '.')
+    {
+        str.push_back(current());
+        advance();
         while (isdigit(current()))
         {
             str.push_back(current());
             advance();
         }
-        if (current() == '.')
+        if (tolower(current()) == 'e')
         {
             str.push_back(current());
             advance();
+            if (current() == '+' || current() == '-')
+            {
+                str.push_back(current());
+                advance();
+            }
             while (isdigit(current()))
             {
                 str.push_back(current());
                 advance();
             }
-            if (tolower(current()) == 'e')
-            {
-                str.push_back(current());
-                advance();
-                if (current() == '+' || current() == '-')
-                {
-                    str.push_back(current());
-                    advance();
-                }
-                while (isdigit(current()))
-                {
-                    str.push_back(current());
-                    advance();
-                }
-            }
-            tokens.emplace_back(TokenType::TKL_FLOAT, line, col - str.length(), str);
         }
-        else
-        {
-            tokens.emplace_back(TokenType::TKL_INT, line, col - str.length(), str);
-        }
+        tokens.emplace_back(TokenType::TKL_FLOAT, line, col - str.length(), str);
+    }
+    else
+    {
+        tokens.emplace_back(TokenType::TKL_INT, line, col - str.length(), str);
     }
 }
 
@@ -276,7 +203,7 @@ bool Lexer::isSeperator(char c) const
 
 bool Lexer::isOperator(char c) const
 {
-    constexpr std::array<char, 12> OPERATORS = {'>', '<', '=', '!', '^', '|', '&', '+', '-', '*', '/', '%'};
+    constexpr std::array<char, 13> OPERATORS = {'>', '<', '=', '!', '^', '|', '&','~', '+', '-', '*', '/', '%'};
     return std::find(OPERATORS.begin(), OPERATORS.end(), c) != OPERATORS.end();
 }
 
@@ -312,21 +239,47 @@ void Lexer::handleStringLiteral()
         if (current() == '\\')
         {
             advance();
-            if (current() == 'u')
+            switch (current())
+            {
+            case 'u':
             {
                 advance();
                 std::string unicode_seq;
                 for (int i = 0; i < 4; ++i)
                 {
+                    if (!isxdigit(current()))
+                    {
+                        print.error("Invalid Unicode escape sequence.", line, col + 1, file);
+                        tokens.emplace_back(TokenType::TK_ERR, line, col - unicode_seq.length(), unicode_seq);
+                        return;
+                    }
                     unicode_seq.push_back(current());
                     advance();
                 }
                 str.push_back(static_cast<char>(std::stoi(unicode_seq, nullptr, 16)));
+                break;
             }
-            else
-            {
+            case 'n':
+                str.push_back('\n');
+                advance();
+                break;
+            case 't':
+                str.push_back('\t');
+                advance();
+                break;
+            case '"':
+                str.push_back('"');
+                advance();
+                break;
+            case '\\':
+                str.push_back('\\');
+                advance();
+                break;
+            default:
+                print.warn("Escape sequence is not recognised.", line, col + 1, file);
                 str.push_back(current());
                 advance();
+                break;
             }
         }
         else
@@ -335,7 +288,18 @@ void Lexer::handleStringLiteral()
             advance();
         }
     }
-    advance();
+
+    if (current() == '"')
+    {
+        advance();
+    }
+    else
+    {
+        print.error("Unterminated string literal.", line, col + 1, file);
+        tokens.emplace_back(TokenType::TK_ERR, line, col - str.length(), str);
+        return;
+    }
+
     tokens.emplace_back(TokenType::TKL_STR, line, col - str.length(), str);
 }
 

@@ -6,11 +6,10 @@ project(zurox-lang LANGUAGES C CXX)
 ################################
 
 set(CMAKE_LINKER lld)
-#set(CMAKE_CXX_LINKER_WRAPPER_FLAG "-fuse-ld=lld")
-#set(CMAKE_C_LINKER_WRAPPER_FLAG "-fuse-ld=lld")
-
 option(NO_OUTPUT_COLOR "Disable colorized output." OFF)
 option(ENABLE_TESTS "Enable testing." OFF)
+option(STRIP_BINARIES OFF)
+option(ENABLE_VALGRIND ON)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
@@ -25,6 +24,7 @@ endif()
 
 set(SUPPORTED_ARCHITECTURES x86-64 x86-64-v3 aarch64 powerpc64 native)
 set(DEFAULT_ARCHITECTURE "native" CACHE STRING "Choose the target CPU architecture from ${SUPPORTED_ARCHITECTURES}.")
+
 set_property(CACHE DEFAULT_ARCHITECTURE PROPERTY STRINGS ${SUPPORTED_ARCHITECTURES})
 
 option(BUILD_ARCH "Specify the target CPU architecture" ${DEFAULT_ARCHITECTURE})
@@ -64,11 +64,12 @@ if(CMAKE_BUILD_TYPE STREQUAL "Release" OR CMAKE_BUILD_TYPE STREQUAL "RelWithDbgI
         message(WARNING "IPO/LTO not supported, disabling it.")
     endif()
     if(CMAKE_BUILD_TYPE STREQUAL "RelWithDbgInfo")
-        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 -pipe -strip  -Wall -Werror")
-        set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O3 -pipe -strip  -Wall -Werror")
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 -pipe -Wall -Werror")
+        set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O3 -pipe -Wall -Werror")
     else()
         set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 -pipe  -Wall -Werror")
         set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O3 -pipe -Wall -Werror")
+        set(STRIP_BINARIES ON)
     endif()
 else()
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Ofast -pipe -Wall")
@@ -76,14 +77,10 @@ else()
 endif()
 
 ################################
-# ZLIB DEPENENCIES
+# DEPENENCIES
 ################################
 
 find_package(ZLIB REQUIRED)
-
-################################
-# LLVM DEPENENCIES
-################################
 
 find_package(LLVM REQUIRED CONFIG)
 message(STATUS "Found LLVM ${LLVM_PACKAGE_VERSION}")
@@ -109,27 +106,27 @@ string(REGEX REPLACE "\n" " " LLVM_LINK "${LLVM_LINK}")
 # SOURCE FILES
 ################################
 
-file(GLOB SOURCE_FILES "${CMAKE_SOURCE_DIR}/src/*.cc")
-file(GLOB COMPILER_SOURCE_FILES "${CMAKE_SOURCE_DIR}/src/compiler/*.cc")
-file(GLOB INTERPRETER_SOURCE_FILES "${CMAKE_SOURCE_DIR}/src/interpreter/*.cc")
+file(GLOB LANG_SOURCE_FILES "${CMAKE_SOURCE_DIR}/src/lang/*.cc")
+file(GLOB ZUROXC_SOURCE_FILES "${CMAKE_SOURCE_DIR}/src/zuroxc/*.cc")
+file(GLOB ZUROXI_SOURCE_FILES "${CMAKE_SOURCE_DIR}/src/zuroxi/*.cc")
 
 ################################
 # ZUROXC EXECUTABLE
 ################################
 
-add_executable(zuroxc ${SOURCE_FILES} ${COMPILER_SOURCE_FILES})
+add_executable(zuroxc ${LANG_SOURCE_FILES} ${ZUROXC_SOURCE_FILES})
 target_include_directories(zuroxc PRIVATE ${CMAKE_SOURCE_DIR}/include "${LLVM_INCLUDE_DIRS}")
 target_compile_options(zuroxc PRIVATE ${LLVM_COMPILE})
-target_link_libraries(zuroxc PRIVATE ${LLVM_LINK})
+target_link_libraries(zuroxc PRIVATE ${LLVM_LINK} "-lz")
 
 ################################
 # ZUROXI EXECUTABLE
 ################################
 
-add_executable(zuroxi ${SOURCE_FILES} ${INTERPRETER_SOURCE_FILES})
+add_executable(zuroxi ${LANG_SOURCE_FILES} ${ZUROXI_SOURCE_FILES})
 target_include_directories(zuroxi PRIVATE ${CMAKE_SOURCE_DIR}/include "${LLVM_INCLUDE_DIRS}")
 target_compile_options(zuroxi PRIVATE ${LLVM_COMPILE})
-target_link_libraries(zuroxi PRIVATE ${LLVM_LINK})
+target_link_libraries(zuroxi PRIVATE ${LLVM_LINK} "-lz")
 
 ################################
 # TESTS
@@ -144,10 +141,15 @@ if (ENABLE_TESTS)
 
     foreach(TEST_SOURCE ${TEST_SOURCES})
         get_filename_component(TEST_NAME ${TEST_SOURCE} NAME_WE)
-        add_executable(${TEST_NAME} ${TEST_SOURCE} ${SOURCE_FILES})
-        target_include_directories(${TEST_NAME} PRIVATE ${CMAKE_SOURCE_DIR}/include "${LLVM_INCLUDE_DIRS}" "${ICU_INCLUDE_DIRS}" ${gtest_SOURCE_DIR}/include ${gmock_SOURCE_DIR}/include)
-        target_link_libraries(${TEST_NAME} PRIVATE gtest gmock gtest_main ${LLVM_LINK} ${ICU_LIBRARIES})
+        add_executable(${TEST_NAME} ${TEST_SOURCE} ${LANG_SOURCE_FILES})
+        target_include_directories(${TEST_NAME} PRIVATE ${CMAKE_SOURCE_DIR}/include "${LLVM_INCLUDE_DIRS}" ${gtest_SOURCE_DIR}/include ${gmock_SOURCE_DIR}/include)
+        target_link_libraries(${TEST_NAME} PRIVATE gtest gmock gtest_main ${LLVM_LINK} "-lz")
         add_test(NAME ${TEST_NAME} COMMAND ${TEST_NAME})
+
+        if (ENABLE_VALGRIND)
+            add_test(NAME ${TEST_NAME}_valgrind
+                     COMMAND valgrind --leak-check=full --track-origins=yes --error-exitcode=1 ./${TEST_NAME})
+        endif()
     endforeach()
 endif()
 

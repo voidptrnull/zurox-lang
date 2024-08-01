@@ -1,12 +1,20 @@
+/**
+ * This file is part of the Zurox project.
+ * Licensed under the BSD 3-Clause License. See LICENSE file for details.
+ * (C) 2024 Subhadip Roy Chowdhury
+ */
+
 #include <iostream>
 #include <string>
 #include <version.hh>
 #include <print.hh>
+#include <lexer.hh>
+#include <parser.hh>
 #include <sstream>
 #include <fstream>
-#include <cctype>
 #include <llvm/Support/CommandLine.h>
 #include <llvm/Support/raw_ostream.h>
+#include <llvm/Passes/PassBuilder.h>
 #include <llvm/ADT/StringMap.h>
 #include <llvm/TargetParser/Triple.h>
 
@@ -17,7 +25,8 @@ enum OptimizationLevel
     O1,
     O2,
     O3,
-    O
+    Os,
+    Oz
 };
 
 enum StageType
@@ -60,12 +69,13 @@ int main(int argc, char **argv)
             OptionPair.getKey() != "version" &&
             OptionPair.getKey() != "help")
         {
+            // Make sure they dont get shown anyhow.
             OptionPair.getValue()->setHiddenFlag(llvm::cl::ReallyHidden);
         }
     }
 
-    llvm::cl::opt<std::string> Output("o", llvm::cl::desc("Specify the name of the output file."), llvm::cl::value_desc("filename"));
-    llvm::cl::opt<StageType> Stage(llvm::cl::desc("Choose stage type."),
+    llvm::cl::opt<std::string> Output("o", llvm::cl::desc("Specify the name of the output file."), llvm::cl::value_desc("<path to file>"));
+    llvm::cl::opt<StageType> Stage(llvm::cl::desc("Stage types.:"),
                                    llvm::cl::values(
                                        clEnumVal(c, "Run all stages except linking."),
                                        clEnumVal(S, "Specify to only compile files to provide assembly."),
@@ -75,10 +85,12 @@ int main(int argc, char **argv)
     llvm::cl::opt<OptimizationLevel> OptimizationLevel(llvm::cl::desc("Choose optimization level:"),
                                                        llvm::cl::values(
                                                            clEnumVal(g, "No optimizations, enable debugging"),
-                                                           clEnumVal(O0, "Perform no optimizations."),
-                                                           clEnumVal(O1, "Enable trivial optimizations"),
-                                                           clEnumVal(O2, "Enable default optimizations"),
-                                                           clEnumVal(O3, "Enable expensive optimizations")));
+                                                           clEnumVal(O0, "Perform very little optimizations."),
+                                                           clEnumVal(O1, "Enable trivial optimizations for fast execution and debugging."),
+                                                           clEnumVal(O2, "Enable default optimizations for performance."),
+                                                           clEnumVal(O3, "Enable expensive optimizations for performance."),
+                                                           clEnumVal(Os, "Enable default optimizations but for binary size."),
+                                                           clEnumVal(Oz, "Enable expensive optimizations for binary size. Produce the smallest possible code.")));
     llvm::cl::opt<std::string> March(llvm::cl::desc("Choose target architecture."), llvm::cl::value_desc("architecture name"));
     llvm::cl::list<std::string> InputFiles(llvm::cl::Positional, llvm::cl::desc("<input files>"), llvm::cl::OneOrMore, llvm::cl::Required);
 
@@ -90,14 +102,22 @@ int main(int argc, char **argv)
         if (type == llvm::Triple::ArchType::UnknownArch)
         {
             print.error("Unrecognised option `" + March + "`. Error is fatal. Can not continue execution. Exiting....");
-            print.info("You are supposed to pass the architecture name like `skylake` or `x86-64`. See LLVM triplets for more information.");
+            print.info("You are supposed to pass the architecture name like `skylake` for `x86-64`. See LLVM triplets for more information.");
             print.flush();
             return 255;
         }
     }
 
-    // Process other options and logic here
-    //
+    for (std::string ref : InputFiles)
+    {
+        std::string file;
+        read_file(file, ref, print);
+        Lexer lexer(file, ref, print);
+        auto tokens = lexer.lex();
+        std::vector<std::shared_ptr<ASTNode>> nodes;
+        Parser parser(nodes, tokens, print, file);
+        parser.parse();
+    }
 
     return 0;
 }

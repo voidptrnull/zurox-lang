@@ -1,4 +1,4 @@
-# 2. Lexer
+# Lexer
 
 ## Overview
 

@@ -26,7 +26,7 @@ public:
      */
     std::vector<Token> lex();
 private:
-    size_t line, col;                ///< Current line and column in the file.
+    int_t line, col;                ///< Current line and column in the file.
     std::vector<Token> tokens;       ///< Tokens generated during lexing.
     const std::string file;                ///< Content of the file to lex.
     const std::string file_name;           ///< Name of the file being lexed.

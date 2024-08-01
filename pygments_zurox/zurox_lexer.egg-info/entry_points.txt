@@ -1,0 +1,2 @@
+[pygments.lexers]
+zurox = zurox_lexer:ZuroxLexer

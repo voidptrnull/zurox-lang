@@ -1,4 +1,11 @@
+/**
+ * This file is part of the Zurox project.
+ * Licensed under the BSD 3-Clause License. See LICENSE file for details.
+ * (C) 2024 Subhadip Roy Chowdhury
+ */
+
 #include <print.hh>
+#include <iostream>
 
 PrintGlobalState::PrintGlobalState() : erroneous(false) {}
 
@@ -12,6 +19,11 @@ void PrintGlobalState::reset()
 bool PrintGlobalState::hasEncounteredError() const
 {
     return erroneous;
+}
+
+void PrintGlobalState::printFilename(const std::string &name)
+{
+    buffer << "\x1b[37mIn file \x1b[37;1m" << name << "\x1b[0m:";
 }
 
 void PrintGlobalState::error(const std::string &message, int_t line, int_t col, const std::string &file) const
@@ -56,6 +68,7 @@ void PrintGlobalState::printFile(int_t line, int_t col, const std::string &file)
         buffer << "Invalid line or column number.\n";
         return;
     }
+    col++;
 
     int_t index = 0;
     int_t current_line = 1;
@@ -92,7 +105,7 @@ void PrintGlobalState::printFile(int_t line, int_t col, const std::string &file)
 
     int_t line_num_width = std::to_string(line).size();
 
-    buffer << std::string(line_num_width, ' ') << " | " << marker << "\n";
+    buffer << std::string(line_num_width, ' ') << " | " << "\n";
     buffer << line << " | " << line_str << '\n';
     buffer << std::string(line_num_width, ' ') << " | " << marker << "\n";
 }
@@ -102,4 +115,19 @@ void PrintGlobalState::flush() const
     std::cout << buffer.str();
     buffer.str("");
     buffer.clear();
+}
+
+int_t PrintGlobalState::getError() const
+{
+    return errors;
+}
+
+int_t PrintGlobalState::getWarns() const
+{
+    return warns;
+}
+
+void PrintGlobalState::increment(bool error)
+{
+    (error) ? errors++ : warns++;
 }

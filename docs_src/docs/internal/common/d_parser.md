@@ -1,3 +1,3 @@
-# 3. Parser
+# Parser
 
 >TODO: Add documentation. WIP
