@@ -7,3 +7,7 @@ site/
 Testing/
 install/
 llvm.sh
+.vscode/
+.zed/
+.cache/
+docs_src/
