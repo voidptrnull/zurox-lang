@@ -1,3 +1,0 @@
-[pygments.lexers]
-zurox = pymdown_zurox:ZxLexer
-zx = pymdown_zurox:ZxLexer
