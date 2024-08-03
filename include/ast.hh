@@ -43,14 +43,6 @@ public:
     void accept(ASTVisitor &visitor) override;
 };
 
-class VarDeclASTNode : public ASTNode
-{
-public:
-bool reference;
-
-void accept(ASTVisitor &visitor) override;
-};
-
 // Class for binary operations
 class BinaryOp : public ASTNode
 {
@@ -61,6 +53,16 @@ public:
 
     BinaryOp(ASTNodePtr l, const Token &o, ASTNodePtr r) : left(l), op(o), right(r) {}
     void accept(ASTVisitor &visitor) override;
+};
+
+class VarDeclASTNode : public ASTNode
+{
+public:
+bool reference;
+Token identifier;
+std::shared_ptr<BinaryOp> initializer;
+
+void accept(ASTVisitor &visitor) override;
 };
 
 // Class for unary operations

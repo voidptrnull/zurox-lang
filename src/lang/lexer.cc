@@ -10,19 +10,84 @@
 #include <lexer.hh>
 #include <version.hh>
 
+constexpr std::array<bool, 256> createAlphaTable()
+{
+    std::array<bool, 256> table = {};
+    for (char c = 'a'; c <= 'z'; ++c)
+        table[static_cast<unsigned char>(c)] = true;
+    for (char c = 'A'; c <= 'Z'; ++c)
+        table[static_cast<unsigned char>(c)] = true;
+    table[static_cast<unsigned char>('_')] = true;
+    return table;
+}
+
+constexpr std::array<bool, 256> createAlnumTable()
+{
+    std::array<bool, 256> table = createAlphaTable();
+    for (char c = '0'; c <= '9'; ++c)
+        table[static_cast<unsigned char>(c)] = true;
+    return table;
+}
+
+constexpr std::array<bool, 256> createDigitTable()
+{
+    std::array<bool, 256> table = {};
+    for (char c = '0'; c <= '9'; ++c)
+        table[static_cast<unsigned char>(c)] = true;
+    return table;
+}
+
+constexpr std::array<bool, 256> createXdigitTable()
+{
+    std::array<bool, 256> table = createDigitTable();
+    for (char c = 'a'; c <= 'f'; ++c)
+        table[static_cast<unsigned char>(c)] = true;
+    for (char c = 'A'; c <= 'F'; ++c)
+        table[static_cast<unsigned char>(c)] = true;
+    return table;
+}
+
+static constexpr std::array<bool, 256> is_alpha_table = createAlphaTable();
+static constexpr std::array<bool, 256> is_alnum_table = createAlnumTable();
+static constexpr std::array<bool, 256> is_digit_table = createDigitTable();
+static constexpr std::array<bool, 256> is_xdigit_table = createXdigitTable();
+
+constexpr inline bool __is_alpha(unsigned char c)
+{
+    return is_alpha_table[c];
+}
+
+constexpr inline bool __is_alnum(unsigned char c)
+{
+    return is_alnum_table[c];
+}
+
+constexpr inline bool __is_digit(unsigned char c)
+{
+    return is_digit_table[c];
+}
+
+constexpr inline bool __is_xdigit(unsigned char c)
+{
+    return is_xdigit_table[c];
+}
+
 Lexer::Lexer(const std::string &file, const std::string &file_name, PrintGlobalState &print)
-    : line(1), col(0), file(file), file_name(file_name), print(print) {}
+    : line(1), col(0), file(file), file_name(file_name), print(print)
+{
+    tokens.reserve(file.length() / LEXER_SIZE_APPROX_FACTOR);
+}
 
 std::vector<Token> Lexer::lex()
 {
     while (col < file.length())
     {
         char c = current();
-        if (isalpha(c) || c == '_')
+        if (__is_alpha(c))
         {
             keywordOrDatatypeOrIdentifier();
         }
-        else if (isdigit(c))
+        else if (__is_digit(c))
         {
             number();
         }
@@ -89,17 +154,20 @@ void Lexer::advance()
 void Lexer::keywordOrDatatypeOrIdentifier()
 {
     std::string str;
-    while (isalnum(current()) || current() == '_')
+    str.reserve(8);
+
+    while (__is_alnum(current()) || current() == '_')
     {
         str.push_back(current());
         advance();
     }
 
-    if (auto dt = find_dt(str); dt)
+    std::string_view sv(str);
+    if (auto dt = find_dt(sv); dt)
     {
         tokens.emplace_back(TokenType::TK_DATATYPE, line, col - str.length(), str);
     }
-    else if (auto keyword = find_keyword(str); keyword)
+    else if (auto keyword = find_keyword(sv); keyword)
     {
         tokens.emplace_back(TokenType::TK_KEYWORD, line, col - str.length(), str);
     }
@@ -112,6 +180,7 @@ void Lexer::keywordOrDatatypeOrIdentifier()
 void Lexer::number()
 {
     std::string str;
+    str.reserve(8);
 
     if (current() == '0')
     {
@@ -121,7 +190,7 @@ void Lexer::number()
             str.push_back('0');
             str.push_back('x');
             advance();
-            while (isxdigit(current()))
+            while (__is_xdigit(current()))
             {
                 str.push_back(current());
                 advance();
@@ -158,41 +227,50 @@ void Lexer::number()
     }
 
     // Decimal integer or float
-    while (isdigit(current()))
+    while (__is_digit(current()))
     {
         str.push_back(current());
         advance();
     }
+
+    bool __float = 0;
+
     if (current() == '.')
     {
         str.push_back(current());
         advance();
-        while (isdigit(current()))
+        while (__is_digit(current()))
         {
             str.push_back(current());
             advance();
         }
-        if (tolower(current()) == 'e')
-        {
-            str.push_back(current());
-            advance();
-            if (current() == '+' || current() == '-')
-            {
-                str.push_back(current());
-                advance();
-            }
-            while (isdigit(current()))
-            {
-                str.push_back(current());
-                advance();
-            }
-        }
-        tokens.emplace_back(TokenType::TKL_FLOAT, line, col - str.length(), str);
+        __float = true;
     }
-    else
+
+    if (tolower(current()) == 'e')
     {
-        tokens.emplace_back(TokenType::TKL_INT, line, col - str.length(), str);
+        __float = true;
+        str.push_back(current());
+        advance();
+        if (current() == '+' || current() == '-')
+        {
+            str.push_back(current());
+            advance();
+        }
+        while (__is_digit(current()))
+        {
+            str.push_back(current());
+            advance();
+        }
+
+        tokens.emplace_back(TokenType::TKL_FLOAT, line, col - str.length(), str);
+        return;
     }
+
+    if (__float)
+        tokens.emplace_back(TokenType::TKL_FLOAT, line, col - str.length(), str);
+    else
+        tokens.emplace_back(TokenType::TKL_INT, line, col - str.length(), str);
 }
 
 bool Lexer::isSeperator(char c) const
@@ -203,13 +281,15 @@ bool Lexer::isSeperator(char c) const
 
 bool Lexer::isOperator(char c) const
 {
-    constexpr std::array<char, 13> OPERATORS = {'>', '<', '=', '!', '^', '|', '&','~', '+', '-', '*', '/', '%'};
+    constexpr std::array<char, 13> OPERATORS = {'>', '<', '=', '!', '^', '|', '&', '~', '+', '-', '*', '/', '%'};
     return std::find(OPERATORS.begin(), OPERATORS.end(), c) != OPERATORS.end();
 }
 
 void Lexer::handleOperator()
 {
     std::string op;
+    op.reserve(3);
+
     if (current() == '/' && (peek() == '/' || peek() == '*'))
     {
         handleComment();
@@ -233,6 +313,7 @@ void Lexer::handleStringLiteral()
 {
     advance();
     std::string str;
+    str.reserve(16);
 
     while (current() != '"' && current() != '\0')
     {
@@ -247,7 +328,7 @@ void Lexer::handleStringLiteral()
                 std::string unicode_seq;
                 for (int i = 0; i < 4; ++i)
                 {
-                    if (!isxdigit(current()))
+                    if (!__is_xdigit(current()))
                     {
                         print.error("Invalid Unicode escape sequence.", line, col + 1, file);
                         tokens.emplace_back(TokenType::TK_ERR, line, col - unicode_seq.length(), unicode_seq);
@@ -306,10 +387,13 @@ void Lexer::handleStringLiteral()
 void Lexer::handleCharLiteral()
 {
     advance();
+
     if (current() == '\\')
     {
         advance();
         std::string escape_seq;
+        escape_seq.reserve(6);
+
         if (current() == 'u')
         {
             advance();

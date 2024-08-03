@@ -6,6 +6,8 @@
 #include <token.hh>
 #include <print.hh>
 
+#define LEXER_SIZE_APPROX_FACTOR 3
+
 /**
  * @brief Lexer class for lexical analysis of a source file.
  */

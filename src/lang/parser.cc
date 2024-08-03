@@ -12,7 +12,7 @@ Parser::Parser(std::vector<std::shared_ptr<ASTNode>> &nodes, const std::vector<T
 
 Token Parser::currentToken()
 {
-    if (pos < tokens.size())
+    if (pos < tokens.size() - 1)
     {
         return tokens[pos];
     }
@@ -21,7 +21,7 @@ Token Parser::currentToken()
 
 Token Parser::peekToken(int n)
 {
-    if (pos + n < tokens.size())
+    if (pos + n < tokens.size() - 1)
     {
         return tokens[pos + n];
     }
@@ -30,10 +30,12 @@ Token Parser::peekToken(int n)
 
 void Parser::advance()
 {
-    if (pos < tokens.size())
+    if (pos < tokens.size() - 1)
     {
         pos++;
+        return;
     }
+    print.error("Reached unexpected end of file while parsing.", tokens[pos].line, tokens[pos].col, file);
 }
 
 bool Parser::match(TokenType type)
@@ -550,7 +552,6 @@ void Parser::parse()
         }
         else
         {
-            // Handle parsing error
             print.error("Unexpected token", currentToken().line, currentToken().col, file);
             advance();
         }

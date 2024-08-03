@@ -8,8 +8,11 @@ project(zurox-lang LANGUAGES C CXX)
 set(CMAKE_LINKER lld)
 option(NO_OUTPUT_COLOR "Disable colorized output." OFF)
 option(ENABLE_TESTS "Enable testing." OFF)
-option(STRIP_BINARIES OFF)
-option(ENABLE_VALGRIND ON)
+option(STRIP_BINARIES "Strip binaries upon install. Only triggered if binaries are being installed." OFF)
+option(ENABLE_VALGRIND "Enable valgrind tests." ON)
+
+option(SOURCE_ZLIB "Build zlib from source." OFF)
+option(SOURCE_LLVM "Build LLVM from source." OFF)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
@@ -64,23 +67,27 @@ if(CMAKE_BUILD_TYPE STREQUAL "Release" OR CMAKE_BUILD_TYPE STREQUAL "RelWithDbgI
         message(WARNING "IPO/LTO not supported, disabling it.")
     endif()
     if(CMAKE_BUILD_TYPE STREQUAL "RelWithDbgInfo")
-        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 -pipe -Wall -Werror")
-        set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O3 -pipe -Wall -Werror")
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 -pipe -Wall -g -Werror")
+        set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O3 -pipe -Wall -g -Werror")
     else()
-        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 -pipe  -Wall -Werror")
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 -pipe -Wall -Werror")
         set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O3 -pipe -Wall -Werror")
         set(STRIP_BINARIES ON)
     endif()
 else()
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Ofast -pipe -Wall")
-    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Ofast -pipe -Wall")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O1 -g -pipe -Wall")
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O1 -pipe -g -Wall")
 endif()
 
 ################################
 # DEPENENCIES
 ################################
 
-find_package(ZLIB REQUIRED)
+if (SOURCE_LLVM)
+    add_subdirectory(external/zlib)
+else()
+    find_package(ZLIB REQUIRED)
+endif()
 
 find_package(LLVM REQUIRED CONFIG)
 message(STATUS "Found LLVM ${LLVM_PACKAGE_VERSION}")

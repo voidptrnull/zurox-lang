@@ -1,3 +1,8 @@
+/**
+ * This file is part of the Zurox project.
+ * Licensed under the BSD 3-Clause License. See LICENSE file for details.
+ * (C) 2024 Subhadip Roy Chowdhury
+ */
 #ifndef PARSER_HH
 #define PARSER_HH
 

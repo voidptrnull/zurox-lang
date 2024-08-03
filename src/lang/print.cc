@@ -68,7 +68,6 @@ void PrintGlobalState::printFile(int_t line, int_t col, const std::string &file)
         buffer << "Invalid line or column number.\n";
         return;
     }
-    col++;
 
     int_t index = 0;
     int_t current_line = 1;
@@ -98,9 +97,9 @@ void PrintGlobalState::printFile(int_t line, int_t col, const std::string &file)
     std::string line_str = file.substr(start_of_line, end_of_line - start_of_line);
     std::string marker(line_str.size() + 1, ' ');
 
-    if (col - 1 < line_str.size())
+    if (col - start_of_line < line_str.size())
     {
-        marker[col - 1] = '^';
+        marker[col - start_of_line] = '^';
     }
 
     int_t line_num_width = std::to_string(line).size();
