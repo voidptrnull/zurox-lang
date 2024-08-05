@@ -124,7 +124,7 @@ execute_process(
 string(REGEX REPLACE "\n" " " LLVM_COMPILE "${LLVM_COMPILE}")
 
 execute_process(
-    COMMAND ${LLVM_CONFIG_EXE} --ldflags --libs
+    COMMAND ${LLVM_CONFIG_EXE} --ldflags --link-shared --libs
     OUTPUT_VARIABLE LLVM_LINK
     OUTPUT_STRIP_TRAILING_WHITESPACE
 )

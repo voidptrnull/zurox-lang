@@ -1,4 +1,5 @@
 build/
+external/llvm/build
 *.o
 *.pch
 *.gch
