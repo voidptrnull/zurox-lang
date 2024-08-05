@@ -4,3 +4,7 @@
 [submodule "external/zlib"]
 	path = external/zlib
 	url = https://github.com/madler/zlib.git
+[submodule "external/llvm"]
+	path = external/llvm
+	url = https://github.com/llvm/llvm-project
+	branch = release/18.x
