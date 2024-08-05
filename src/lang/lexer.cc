@@ -273,13 +273,13 @@ void Lexer::number()
         tokens.emplace_back(TokenType::TKL_INT, line, col - str.length(), str);
 }
 
-bool Lexer::isSeperator(char c) const
+inline bool Lexer::isSeperator(char c) const
 {
     constexpr std::array<char, 8> SEPARATORS = {';', ',', '{', '}', '[', ']', '(', ')'};
     return std::find(SEPARATORS.begin(), SEPARATORS.end(), c) != SEPARATORS.end();
 }
 
-bool Lexer::isOperator(char c) const
+inline bool Lexer::isOperator(char c) const
 {
     constexpr std::array<char, 13> OPERATORS = {'>', '<', '=', '!', '^', '|', '&', '~', '+', '-', '*', '/', '%'};
     return std::find(OPERATORS.begin(), OPERATORS.end(), c) != OPERATORS.end();

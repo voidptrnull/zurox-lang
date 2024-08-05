@@ -29,12 +29,9 @@ struct Token
     int_t col;
     std::string lexeme;
     Token(TokenType _type, int_t _line, int_t _col, const std::string &_lexeme)
-        : type(_type), line(_line), col(_col), lexeme(_lexeme) {}
-    Token(TokenType _type, int_t _line, int_t _col, const char &_lexeme)
-        : type(_type), line(_line), col(_col)
-    {
-        lexeme.push_back(_lexeme);
-    }
+        : type(_type), line(_line), col(_col), lexeme(std::move(_lexeme)) {}
+    Token(TokenType _type, int_t _line, int_t _col, const char _lexeme)
+        : type(_type), line(_line), col(_col), lexeme(std::string(1,_lexeme)) {}
     Token() {}
 };
 

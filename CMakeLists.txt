@@ -52,7 +52,6 @@ elseif(BUILD_ARCH STREQUAL "native")
     add_compile_options(-march=native)
 endif()
 
-
 ################################
 # Optimizations & Stripping
 ################################
@@ -83,27 +82,49 @@ endif()
 # DEPENENCIES
 ################################
 
-if (SOURCE_LLVM)
+if (SOURCE_ZLIB)
     add_subdirectory(external/zlib)
+    set(ZLIB_LINK zlibstatic)
 else()
     find_package(ZLIB REQUIRED)
+    set(ZLIB_LINK "-lz")
 endif()
 
-find_package(LLVM REQUIRED CONFIG)
-message(STATUS "Found LLVM ${LLVM_PACKAGE_VERSION}")
-message(STATUS "Using LLVMConfig.cmake in: ${LLVM_DIR}")
+if (SOURCE_LLVM)
+    message(STATUS "Setting up LLVM. This may take a while.")
+    execute_process(
+        COMMAND python ${CMAKE_SOURCE_DIR}/scripts/llvm.py --silent
+        OUTPUT_VARIABLE LLVM_CONFIG_EXE
+        OUTPUT_STRIP_TRAILING_WHITESPACE
+    )
+else()
+    find_package(LLVM REQUIRED CONFIG)
+    message(STATUS "Found LLVM ${LLVM_PACKAGE_VERSION}")
+    message(STATUS "Using LLVMConfig.cmake in: ${LLVM_DIR}")
+    execute_process(
+        COMMAND which llvm-config
+        OUTPUT_VARIABLE LLVM_CONFIG_EXE
+        OUTPUT_STRIP_TRAILING_WHITESPACE
+    )
+endif()
+
+execute_process(
+    COMMAND ${LLVM_CONFIG_EXE} --includedir
+    OUTPUT_VARIABLE LLVM_INCLUDE_DIRS
+    OUTPUT_STRIP_TRAILING_WHITESPACE
+)
 
 string(REGEX REPLACE "\n" "" LLVM_INCLUDE_DIRS "${LLVM_INCLUDE_DIRS}")
 
 execute_process(
-    COMMAND llvm-config --cxxflags --cppflags --cflags 
+    COMMAND ${LLVM_CONFIG_EXE} --cxxflags --cppflags --cflags 
     OUTPUT_VARIABLE LLVM_COMPILE
     OUTPUT_STRIP_TRAILING_WHITESPACE
 )
 string(REGEX REPLACE "\n" " " LLVM_COMPILE "${LLVM_COMPILE}")
 
 execute_process(
-    COMMAND llvm-config --ldflags --libs
+    COMMAND ${LLVM_CONFIG_EXE} --ldflags --libs
     OUTPUT_VARIABLE LLVM_LINK
     OUTPUT_STRIP_TRAILING_WHITESPACE
 )
@@ -124,7 +145,7 @@ file(GLOB ZUROXI_SOURCE_FILES "${CMAKE_SOURCE_DIR}/src/zuroxi/*.cc")
 add_executable(zuroxc ${LANG_SOURCE_FILES} ${ZUROXC_SOURCE_FILES})
 target_include_directories(zuroxc PRIVATE ${CMAKE_SOURCE_DIR}/include "${LLVM_INCLUDE_DIRS}")
 target_compile_options(zuroxc PRIVATE ${LLVM_COMPILE})
-target_link_libraries(zuroxc PRIVATE ${LLVM_LINK} "-lz")
+target_link_libraries(zuroxc PRIVATE ${LLVM_LINK} ${ZLIB_LINK})
 
 ################################
 # ZUROXI EXECUTABLE
@@ -133,7 +154,7 @@ target_link_libraries(zuroxc PRIVATE ${LLVM_LINK} "-lz")
 add_executable(zuroxi ${LANG_SOURCE_FILES} ${ZUROXI_SOURCE_FILES})
 target_include_directories(zuroxi PRIVATE ${CMAKE_SOURCE_DIR}/include "${LLVM_INCLUDE_DIRS}")
 target_compile_options(zuroxi PRIVATE ${LLVM_COMPILE})
-target_link_libraries(zuroxi PRIVATE ${LLVM_LINK} "-lz")
+target_link_libraries(zuroxi PRIVATE ${LLVM_LINK} ${ZLIB_LINK})
 
 ################################
 # TESTS
@@ -150,7 +171,7 @@ if (ENABLE_TESTS)
         get_filename_component(TEST_NAME ${TEST_SOURCE} NAME_WE)
         add_executable(${TEST_NAME} ${TEST_SOURCE} ${LANG_SOURCE_FILES})
         target_include_directories(${TEST_NAME} PRIVATE ${CMAKE_SOURCE_DIR}/include "${LLVM_INCLUDE_DIRS}" ${gtest_SOURCE_DIR}/include ${gmock_SOURCE_DIR}/include)
-        target_link_libraries(${TEST_NAME} PRIVATE gtest gmock gtest_main ${LLVM_LINK} "-lz")
+        target_link_libraries(${TEST_NAME} PRIVATE gtest gmock gtest_main ${LLVM_LINK} ${ZLIB_LINK})
         add_test(NAME ${TEST_NAME} COMMAND ${TEST_NAME})
 
         if (ENABLE_VALGRIND)

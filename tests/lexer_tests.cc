@@ -40,7 +40,7 @@ protected:
     {
         static std::random_device rd;
         static std::mt19937 gen(rd());
-        static std::uniform_int_distribution<> dist_len(1, 30);
+        static std::uniform_int_distribution<> dist_len(1, 60);
         static std::uniform_int_distribution<> dist_char(0, 25);
 
         int length = dist_len(gen);
@@ -111,6 +111,7 @@ TEST_F(LexerTest, KeywordOrDatatypeOrIdentifierMethodTest_Identifier)
         if (!find_dt(tokens[i].lexeme).has_value() && !find_keyword(tokens[i].lexeme).has_value())
         {
             ASSERT_EQ(tokens[i].type, TK_ID);
+            ASSERT_TRUE(tokens[i].lexeme != "");
         }
     }
     ASSERT_EQ(tokens.back().type, TokenType::__EOF); // Ensure the last token is EOF
