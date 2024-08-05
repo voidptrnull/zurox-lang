@@ -60,7 +60,7 @@ if(CMAKE_BUILD_TYPE STREQUAL "Release" OR CMAKE_BUILD_TYPE STREQUAL "RelWithDbgI
     include(CheckIPOSupported)
     check_ipo_supported(RESULT result OUTPUT output)
     if(result)
-        message("-- Compiler supports IPO/LTO, enabling IPO/LTO for the build.")
+        message(STATUS "Compiler supports IPO/LTO, enabling IPO/LTO for the build.")
         set(CMAKE_INTERPROCEDURAL_OPTIMIZATION TRUE)
     else()
         message(WARNING "IPO/LTO not supported, disabling it.")
