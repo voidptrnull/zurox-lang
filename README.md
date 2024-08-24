@@ -2,6 +2,12 @@
 
 > Note: Zurox is still a WIP, things are worse than you might expect. Don't get your hopes too high, unless you feel like changing that.
 
+## What's up with Rust version ?
+
+After having being shot too many times in the foot by memory errors (skill issue, I know) and having wasted more time than I spent writing, I decided to switch the code-base to Rust.
+It's primarily not because of the safety but because of the language features. Like `enum` with `struct`s and `unit` structs, multiple `impl`s etc. just to name a few. 
+Atleast the compiler will scream at me and not the tests.
+
 ## Dependencies
 
 **Build system**: `CMake`
