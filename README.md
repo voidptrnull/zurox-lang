@@ -1,7 +1,10 @@
 # Zurox Programming Language Suite
 
-> Note: Zurox is still a WIP, things are worse than you might expect. Don't get your hopes too high, unless you feel like changing that.
+> Note: Zurox is still a WIP, things are worse than you might expect. Don't get your hopes too high, unless you feel like changing that. <br>
 
+>[!IMPORTANT]
+>
+> Archival update: This C++ implementation has been archived. Refer to [here](https://github.com/zurox-lang/zuroxc) instead.
 ## Dependencies
 
 **Build system**: `CMake`
