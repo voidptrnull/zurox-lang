@@ -4,7 +4,7 @@
 
 >[!IMPORTANT]
 >
-> Archival update: This C++ implementation has been archived. Refer to [here](https://github.com/zurox-lang/zuroxc) instead.
+> Archival update: This has been archived indefinitely. However, it will be continued.
 ## Dependencies
 
 **Build system**: `CMake`
